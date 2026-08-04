@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, Redirect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -15,9 +15,11 @@ import { useAuth } from "@/src/context/AuthContext";
 export default function LobbyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, token, signOut } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [blocked, setBlocked] = useState(false);
+
+  if (!token) return <Redirect href="/login" />;
 
   const cameraGranted = permission?.granted;
 
@@ -129,8 +131,8 @@ const styles = StyleSheet.create({
   verifiedRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 1 },
   verifiedText: { fontFamily: fonts.textMedium, fontSize: 11, color: "#7CF0AE" },
   iconBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",

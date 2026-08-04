@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, Redirect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -21,11 +21,13 @@ import { api } from "@/src/api";
 export default function VerifyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setUser, signOut } = useAuth();
+  const { token, setUser, signOut } = useAuth();
   const [selfie, setSelfie] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
+
+  if (!token) return <Redirect href="/login" />;
 
   const pickImage = async (fromCamera: boolean) => {
     setError(null);
