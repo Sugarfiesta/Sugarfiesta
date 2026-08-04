@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Platform,
+  FlatList,
+  TextInput,
+  KeyboardAvoidingView,
+} from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -20,10 +29,19 @@ import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, fonts, fontScale, IMAGES, partnerImage } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
-import { TOKEN_KEY, wsUrl } from "@/src/api";
+import { TOKEN_KEY, wsUrl, api } from "@/src/api";
 
 type Partner = { id: string; name: string; gender: string; verified: boolean; is_bot: boolean };
 type Status = "connecting" | "searching" | "matched" | "error";
+type ChatMsg = { id: string; text: string; mine: boolean };
+
+const REPORT_REASONS = [
+  "Unangemessenes Verhalten",
+  "Nacktheit / sexueller Inhalt",
+  "Belästigung oder Hass",
+  "Spam oder Betrug",
+  "Minderjährige Person",
+];
 
 export default function StageScreen() {
   const insets = useSafeAreaInsets();
@@ -32,9 +50,21 @@ export default function StageScreen() {
 
   const [status, setStatus] = useState<Status>("connecting");
   const [partner, setPartner] = useState<Partner | null>(null);
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const closingRef = useRef(false);
+
+  const showToast = useCallback((text: string) => {
+    setToast(text);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  }, []);
 
   const connect = useCallback(async () => {
     closingRef.current = false;
@@ -57,13 +87,23 @@ export default function StageScreen() {
         if (msg.type === "searching") {
           setPartner(null);
           setStatus("searching");
+          setMessages([]);
+          setChatOpen(false);
         } else if (msg.type === "matched") {
           setPartner(msg.partner);
           setStatus("matched");
+          setMessages([]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else if (msg.type === "partner_left") {
           setPartner(null);
           setStatus("searching");
+          setMessages([]);
+          setChatOpen(false);
+        } else if (msg.type === "chat") {
+          setMessages((m) => [
+            ...m,
+            { id: `${Date.now()}-${Math.random()}`, text: msg.text, mine: false },
+          ]);
         }
       } catch {
         /* ignore malformed */
@@ -104,6 +144,40 @@ export default function StageScreen() {
     wsRef.current?.close();
     connect();
   }, [connect]);
+
+  const sendChat = useCallback(() => {
+    const text = draft.trim();
+    if (!text || status !== "matched") return;
+    wsRef.current?.send(JSON.stringify({ type: "chat", text }));
+    setMessages((m) => [...m, { id: `${Date.now()}-${Math.random()}`, text, mine: true }]);
+    setDraft("");
+  }, [draft, status]);
+
+  const handleBlock = useCallback(() => {
+    if (!partner) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    wsRef.current?.send(JSON.stringify({ type: "block", target: partner.id }));
+    setChatOpen(false);
+    setPartner(null);
+    setStatus("searching");
+    showToast(`${partner.name} blockiert`);
+  }, [partner, showToast]);
+
+  const submitReport = useCallback(
+    (reason: string) => {
+      const target = partner?.id ?? null;
+      setReportOpen(false);
+      api.report(target, reason).catch(() => {});
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast("Danke, Meldung gesendet");
+      // reporting also skips to the next partner
+      setChatOpen(false);
+      setPartner(null);
+      setStatus("searching");
+      wsRef.current?.send(JSON.stringify({ type: "next" }));
+    },
+    [partner, showToast]
+  );
 
   // Swipe-left to skip (only when matched)
   const swipe = useMemo(
@@ -187,6 +261,27 @@ export default function StageScreen() {
         </View>
       </View>
 
+      {/* Right action rail */}
+      {status === "matched" && partner && !chatOpen && (
+        <View style={[styles.rail, { top: insets.top + 64 + PIP_H + spacing.lg }]}>
+          <Pressable testID="chat-open-button" onPress={() => setChatOpen(true)} style={styles.railBtn}>
+            <Feather name="message-circle" size={22} color={colors.onSurfaceInverse} />
+            {messages.length > 0 && <View style={styles.railBadge} />}
+          </Pressable>
+          <Text style={styles.railLabel}>Chat</Text>
+
+          <Pressable testID="report-button" onPress={() => setReportOpen(true)} style={styles.railBtn}>
+            <Feather name="flag" size={20} color={colors.onSurfaceInverse} />
+          </Pressable>
+          <Text style={styles.railLabel}>Melden</Text>
+
+          <Pressable testID="block-button" onPress={handleBlock} style={[styles.railBtn, styles.railBtnDanger]}>
+            <Feather name="slash" size={20} color={colors.onError} />
+          </Pressable>
+          <Text style={styles.railLabel}>Block</Text>
+        </View>
+      )}
+
       {/* Center state */}
       {(status === "searching" || status === "connecting") && (
         <View style={styles.center} testID="searching-state">
@@ -225,6 +320,90 @@ export default function StageScreen() {
             <Feather name="chevrons-right" size={22} color={colors.onBrandPrimary} />
             <Text style={styles.nextText}>Next</Text>
           </Pressable>
+        </View>
+      )}
+
+      {/* Chat overlay */}
+      {chatOpen && status === "matched" && (
+        <KeyboardAvoidingView
+          style={StyleSheet.absoluteFill}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          testID="chat-overlay"
+        >
+          <Pressable style={styles.overlayBackdrop} onPress={() => setChatOpen(false)} />
+          <View style={[styles.chatCard, { paddingBottom: insets.bottom + spacing.sm }]}>
+            <View style={styles.chatHeader}>
+              <Text style={styles.chatTitle}>Chat mit {partner?.name}</Text>
+              <Pressable testID="chat-close-button" onPress={() => setChatOpen(false)} hitSlop={10}>
+                <Feather name="chevron-down" size={24} color={colors.onSurfaceInverse} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={[...messages].reverse()}
+              inverted
+              keyExtractor={(m) => m.id}
+              contentContainerStyle={styles.chatList}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={<Text style={styles.chatEmpty}>Sag Hallo 👋</Text>}
+              renderItem={({ item }) => (
+                <View style={[styles.bubble, item.mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+                  <Text style={item.mine ? styles.bubbleTextMine : styles.bubbleTextTheirs}>
+                    {item.text}
+                  </Text>
+                </View>
+              )}
+            />
+            <View style={styles.inputRow}>
+              <TextInput
+                testID="chat-input"
+                style={styles.chatInput}
+                placeholder="Nachricht schreiben…"
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                value={draft}
+                onChangeText={setDraft}
+                onSubmitEditing={sendChat}
+                returnKeyType="send"
+                blurOnSubmit={false}
+              />
+              <Pressable testID="chat-send-button" onPress={sendChat} style={styles.sendBtn}>
+                <Feather name="send" size={20} color={colors.onBrandPrimary} />
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* Report overlay */}
+      {reportOpen && (
+        <View style={StyleSheet.absoluteFill} testID="report-overlay">
+          <Pressable style={styles.overlayBackdrop} onPress={() => setReportOpen(false)} />
+          <View style={[styles.reportCard, { paddingBottom: insets.bottom + spacing.md }]}>
+            <View style={styles.reportHandle} />
+            <Text style={styles.reportTitle}>Warum meldest du?</Text>
+            {REPORT_REASONS.map((r, i) => (
+              <Pressable
+                key={r}
+                testID={`report-reason-${i}`}
+                onPress={() => submitReport(r)}
+                style={styles.reasonRow}
+              >
+                <Text style={styles.reasonText}>{r}</Text>
+                <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+              </Pressable>
+            ))}
+            <Pressable testID="report-cancel" onPress={() => setReportOpen(false)} style={styles.reportCancel}>
+              <Text style={styles.reportCancelText}>Abbrechen</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <View style={[styles.toast, { top: insets.top + 70 }]} testID="stage-toast" pointerEvents="none">
+          <Feather name="check-circle" size={15} color={colors.onSurfaceInverse} />
+          <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
     </View>
@@ -342,4 +521,145 @@ const styles = StyleSheet.create({
     color: colors.onBrandPrimary,
     letterSpacing: 0.5,
   },
+  rail: { position: "absolute", right: spacing.lg, alignItems: "center", gap: 2 },
+  railBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.md,
+  },
+  railBtnDanger: { backgroundColor: colors.error },
+  railBadge: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.brandSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.onSurfaceInverse,
+  },
+  railLabel: {
+    fontFamily: fonts.textMedium,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 4,
+  },
+  overlayBackdrop: { flex: 1 },
+  chatCard: {
+    height: "62%",
+    backgroundColor: "rgba(20,6,9,0.96)",
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    overflow: "hidden",
+  },
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  chatTitle: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurfaceInverse },
+  chatList: { padding: spacing.lg, gap: spacing.sm, flexGrow: 1 },
+  chatEmpty: {
+    fontFamily: fonts.textRegular,
+    fontSize: fontScale.base,
+    color: "rgba(255,255,255,0.5)",
+    textAlign: "center",
+    transform: [{ scaleY: -1 }],
+    marginTop: spacing.xl,
+  },
+  bubble: {
+    maxWidth: "78%",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+  },
+  bubbleMine: { alignSelf: "flex-end", backgroundColor: colors.brandPrimary, borderBottomRightRadius: 4 },
+  bubbleTheirs: { alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.14)", borderBottomLeftRadius: 4 },
+  bubbleTextMine: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: colors.onBrandPrimary },
+  bubbleTextTheirs: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: colors.onSurfaceInverse },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  chatInput: {
+    flex: 1,
+    minHeight: 46,
+    maxHeight: 100,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontFamily: fonts.textRegular,
+    fontSize: fontScale.lg,
+    color: colors.onSurfaceInverse,
+  },
+  sendBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportCard: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  reportHandle: {
+    width: 44,
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.borderStrong,
+    alignSelf: "center",
+    marginBottom: spacing.md,
+  },
+  reportTitle: {
+    fontFamily: fonts.displayBold,
+    fontSize: fontScale.xl,
+    color: colors.onSurface,
+    marginBottom: spacing.sm,
+  },
+  reasonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  reasonText: { fontFamily: fonts.textMedium, fontSize: fontScale.lg, color: colors.onSurface },
+  reportCancel: { alignItems: "center", paddingVertical: spacing.lg, marginTop: spacing.xs },
+  reportCancelText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.brandPrimary },
+  toast: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: "rgba(20,6,9,0.92)",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+  },
+  toastText: { fontFamily: fonts.textMedium, fontSize: fontScale.base, color: colors.onSurfaceInverse },
 });

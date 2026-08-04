@@ -11,17 +11,36 @@ import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, fonts, fontScale, IMAGES } from "@/src/theme";
 import { useAuth } from "@/src/context/AuthContext";
+import { api } from "@/src/api";
+
+const PREFS = [
+  { key: "female", label: "Frauen" },
+  { key: "male", label: "Männer" },
+  { key: "everyone", label: "Alle" },
+];
 
 export default function LobbyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, token, signOut } = useAuth();
+  const { user, token, setUser, signOut } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [blocked, setBlocked] = useState(false);
+  const [pref, setPref] = useState(user?.preference || "everyone");
 
   if (!token) return <Redirect href="/login" />;
 
   const cameraGranted = permission?.granted;
+
+  const choosePref = async (key: string) => {
+    setPref(key);
+    Haptics.selectionAsync();
+    try {
+      const updated = await api.setPreference(key);
+      setUser(updated);
+    } catch {
+      /* keep local selection */
+    }
+  };
 
   const enableCamera = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -75,6 +94,25 @@ export default function LobbyScreen() {
       </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <BlurView intensity={30} tint="dark" style={styles.prefCard}>
+          <Text style={styles.prefTitle}>Wen möchtest du treffen?</Text>
+          <View style={styles.prefRow}>
+            {PREFS.map((p) => {
+              const active = pref === p.key;
+              return (
+                <Pressable
+                  key={p.key}
+                  testID={`pref-${p.key}`}
+                  onPress={() => choosePref(p.key)}
+                  style={[styles.prefPill, active && styles.prefPillActive]}
+                >
+                  <Text style={[styles.prefText, active && styles.prefTextActive]}>{p.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </BlurView>
+
         {!cameraGranted && (
           <BlurView intensity={30} tint="dark" style={styles.permCard}>
             <View style={styles.permInner}>
@@ -159,6 +197,31 @@ const styles = StyleSheet.create({
     maxWidth: "90%",
   },
   footer: { paddingHorizontal: spacing.xl, gap: spacing.md },
+  prefCard: {
+    borderRadius: radius.md,
+    overflow: "hidden",
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  prefTitle: {
+    fontFamily: fonts.textMedium,
+    fontSize: fontScale.sm,
+    color: "rgba(255,255,255,0.85)",
+  },
+  prefRow: { flexDirection: "row", gap: spacing.sm },
+  prefPill: {
+    flex: 1,
+    height: 40,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  prefPillActive: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
+  prefText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: "rgba(255,255,255,0.85)" },
+  prefTextActive: { color: colors.onBrandPrimary },
   permCard: {
     borderRadius: radius.md,
     overflow: "hidden",

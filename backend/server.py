@@ -63,6 +63,16 @@ class PublicUser(BaseModel):
     gender: str
     verified: bool
     has_selfie: bool = False
+    preference: str = "everyone"
+
+
+class PreferenceBody(BaseModel):
+    preference: str  # "female" | "male" | "everyone"
+
+
+class ReportBody(BaseModel):
+    reported_id: Optional[str] = None
+    reason: str
 
 
 class AuthResponse(BaseModel):
@@ -78,6 +88,7 @@ def to_public(doc: dict) -> PublicUser:
         gender=doc.get("gender", "other"),
         verified=bool(doc.get("verified", False)),
         has_selfie=bool(doc.get("selfie")),
+        preference=doc.get("preference", "everyone"),
     )
 
 
@@ -133,6 +144,8 @@ async def signup(body: SignupBody):
         "gender": body.gender if body.gender in ("female", "male", "other") else "other",
         "verified": False,
         "selfie": None,
+        "preference": "everyone",
+        "blocked": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -165,6 +178,26 @@ async def verify_profile(body: VerifyBody, user: Annotated[dict, Depends(get_cur
     return to_public(user)
 
 
+@api_router.patch("/profile/preferences", response_model=PublicUser)
+async def set_preference(body: PreferenceBody, user: Annotated[dict, Depends(get_current_user)]):
+    pref = body.preference if body.preference in ("female", "male", "everyone") else "everyone"
+    await db.users.update_one({"id": user["id"]}, {"$set": {"preference": pref}})
+    user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return to_public(user)
+
+
+@api_router.post("/report")
+async def report_user(body: ReportBody, user: Annotated[dict, Depends(get_current_user)]):
+    await db.reports.insert_one({
+        "id": str(uuid.uuid4()),
+        "reporter_id": user["id"],
+        "reported_id": body.reported_id,
+        "reason": body.reason,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True}
+
+
 # ----------------------------- Matching (WebSocket) -----------------------------
 BOTS = [
     {"name": "Valentina", "gender": "female"},
@@ -174,7 +207,40 @@ BOTS = [
     {"name": "Luca", "gender": "male"},
     {"name": "Noah", "gender": "male"},
 ]
+BOT_REPLIES = [
+    "Hey, schön dich zu sehen! 😊",
+    "Du hast ein tolles Lächeln!",
+    "Woher kommst du denn?",
+    "Was machst du so, wenn du nicht auf Sugar bist?",
+    "Ich mag deine Energie ✨",
+    "Erzähl mir was über dich!",
+    "Das ist ja ein netter Zufall 💕",
+    "Bleibst du noch ein bisschen?",
+]
 BOT_TIMEOUT = 4.0  # seconds before matching with a demo partner
+
+
+def _pub(p: dict) -> dict:
+    return {
+        "id": p.get("id"),
+        "name": p.get("name"),
+        "gender": p.get("gender", "other"),
+        "verified": bool(p.get("verified", False)),
+    }
+
+
+def _pref_ok(pref: str, gender: str) -> bool:
+    return pref == "everyone" or pref == gender
+
+
+def _compatible(a: dict, b: dict) -> bool:
+    if not _pref_ok(a.get("preference", "everyone"), b.get("gender", "other")):
+        return False
+    if not _pref_ok(b.get("preference", "everyone"), a.get("gender", "other")):
+        return False
+    if b.get("id") in a.get("blocked", set()) or a.get("id") in b.get("blocked", set()):
+        return False
+    return True
 
 
 class MatchManager:
@@ -208,13 +274,15 @@ class MatchManager:
         self.pairs[a] = b
         self.pairs[b] = a
         pa, pb = self.profiles.get(a, {}), self.profiles.get(b, {})
-        await self.send(a, {"type": "matched", "partner": {**pb, "is_bot": False}})
-        await self.send(b, {"type": "matched", "partner": {**pa, "is_bot": False}})
+        await self.send(a, {"type": "matched", "partner": {**_pub(pb), "is_bot": False}})
+        await self.send(b, {"type": "matched", "partner": {**_pub(pa), "is_bot": False}})
 
     async def _pair_with_bot(self, uid: str):
         if uid in self.waiting:
             self.waiting.remove(uid)
-        bot = dict(random.choice(BOTS))
+        pref = self.profiles.get(uid, {}).get("preference", "everyone")
+        pool = [b for b in BOTS if pref == "everyone" or b["gender"] == pref] or BOTS
+        bot = dict(random.choice(pool))
         bot["id"] = "bot-" + str(uuid.uuid4())[:8]
         bot["verified"] = True
         self.bot_partner[uid] = bot
@@ -238,7 +306,14 @@ class MatchManager:
         await self.send(uid, {"type": "searching"})
         if uid in self.waiting or uid in self.pairs or uid in self.bot_partner:
             return
-        partner = next((w for w in self.waiting if w != uid and w in self.active), None)
+        partner = next(
+            (
+                w
+                for w in self.waiting
+                if w != uid and w in self.active and _compatible(self.profiles.get(uid, {}), self.profiles.get(w, {}))
+            ),
+            None,
+        )
         if partner:
             self.waiting.remove(partner)
             self._cancel_bot(partner)
@@ -265,6 +340,35 @@ class MatchManager:
     async def find(self, uid: str):
         async with self.lock:
             await self.enqueue(uid)
+
+    async def chat(self, uid: str, text: str):
+        text = (text or "").strip()[:500]
+        if not text:
+            return
+        partner = self.pairs.get(uid)
+        if partner:
+            await self.send(partner, {"type": "chat", "text": text, "from": uid})
+        elif uid in self.bot_partner:
+            bot = self.bot_partner[uid]
+            asyncio.create_task(self._bot_reply(uid, dict(bot)))
+
+    async def _bot_reply(self, uid: str, bot: dict):
+        try:
+            await asyncio.sleep(random.uniform(1.0, 2.2))
+            if self.bot_partner.get(uid, {}).get("id") == bot["id"] and uid in self.active:
+                await self.send(uid, {"type": "chat", "text": random.choice(BOT_REPLIES), "from": bot["id"]})
+        except asyncio.CancelledError:
+            pass
+
+    async def block(self, uid: str, target: Optional[str]):
+        async with self.lock:
+            prof = self.profiles.get(uid)
+            if prof is not None and target:
+                prof.setdefault("blocked", set()).add(target)
+            await self.teardown(uid, notify_partner=True)
+            await self.enqueue(uid)
+        if target and not target.startswith("bot-"):
+            await db.users.update_one({"id": uid}, {"$addToSet": {"blocked": target}})
 
     async def disconnect(self, uid: str):
         async with self.lock:
@@ -295,6 +399,8 @@ async def websocket_endpoint(ws: WebSocket):
         "name": user["name"],
         "gender": user.get("gender", "other"),
         "verified": bool(user.get("verified", False)),
+        "preference": user.get("preference", "everyone"),
+        "blocked": set(user.get("blocked", []) or []),
     }
     await manager.connect(user_id, ws, profile)
     try:
@@ -305,6 +411,10 @@ async def websocket_endpoint(ws: WebSocket):
                 await manager.find(user_id)
             elif action == "next":
                 await manager.next_partner(user_id)
+            elif action == "chat":
+                await manager.chat(user_id, data.get("text", ""))
+            elif action == "block":
+                await manager.block(user_id, data.get("target"))
             elif action == "stop":
                 async with manager.lock:
                     if user_id in manager.waiting:

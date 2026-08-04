@@ -10,6 +10,7 @@ export type User = {
   gender: string;
   verified: boolean;
   has_selfie?: boolean;
+  preference?: string;
 };
 
 async function req(path: string, options: RequestInit = {}, auth = false) {
@@ -50,6 +51,10 @@ export const api = {
   me: () => req("/auth/me", { method: "GET" }, true),
   verify: (selfie: string) =>
     req("/profile/verify", { method: "POST", body: JSON.stringify({ selfie }) }, true),
+  setPreference: (preference: string) =>
+    req("/profile/preferences", { method: "PATCH", body: JSON.stringify({ preference }) }, true),
+  report: (reported_id: string | null, reason: string) =>
+    req("/report", { method: "POST", body: JSON.stringify({ reported_id, reason }) }, true),
 };
 
 export function wsUrl(token: string) {

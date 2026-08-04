@@ -33,6 +33,12 @@ Build "Sugar", a mobile random live-video dating app (Chatroulette/Omegle vibe, 
 - Luxury Red/Pink/White theme, Playfair/DM Sans, haptics, gender-individual accents. [done]
 - Tested: backend 12/12 pytest pass; frontend core flows verified (login→lobby→stage→next→stop).
 
+## Implemented (2026-06, update 2)
+- Wunsch-Matching (preference): profile `preference` (female/male/everyone), selector in Lobby, PATCH /api/profile/preferences, mutual-preference filtering in the queue + preference-aware bot fallback. [done]
+- Safety — Report + Block: right-side action rail on the stage. Block (ws `block`, persisted, never re-matches) + Report (reason sheet, POST /api/report, then skip). [done]
+- Live text chat: ws `chat` relay between real partners; canned bot auto-replies for solo demo; chat overlay with bubbles + keyboard-safe input. [done]
+- Verified end-to-end: chat relay, block→both-bots, preference→male bot, bot reply, report all pass; UI screenshots confirm.
+
 ## Backlog (prioritized)
 ### P0
 - Real WebRTC video (react-native-webrtc) — requires deploy + native build; wire signaling over existing WebSocket.
