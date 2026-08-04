@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.randommatch.ejoaem"
+      "bundleIdentifier": "com.emergent.randommatch.ejoaem",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Live-Video mit deinem Match zeigen",
+        "NSMicrophoneUsageDescription": "Sprich live mit deinem Match",
+        "NSPhotoLibraryUsageDescription": "Selfie zur Verifizierung auswählen"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +23,8 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.randommatch.ejoaem"
+      "package": "com.emergent.randommatch.ejoaem",
+      "permissions": ["CAMERA", "RECORD_AUDIO", "READ_MEDIA_IMAGES"]
     },
     "web": {
       "bundler": "metro",
@@ -27,6 +33,20 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Live-Video mit deinem Match zeigen",
+          "microphonePermission": "Sprich live mit deinem Match"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Selfie zur Verifizierung auswählen",
+          "cameraPermission": "Selfie zur Verifizierung aufnehmen"
+        }
+      ],
       [
         "expo-splash-screen",
         {
