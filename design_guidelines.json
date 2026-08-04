@@ -1,0 +1,169 @@
+{
+  "app_name": "Sugar",
+  "personality": "6 Glass / Luxe (Adapted for Light Mode/White with Red & Pink accents)",
+  "personality_one_liner": "A cinematic, highly polished luxurious dating experience that feels expensive, using striking white, deep crimson, and warm rose to frame the live connections.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#1F0A0E",
+    "surfaceSecondary": "#FCF9FA",
+    "onSurfaceSecondary": "#4A2A31",
+    "surfaceTertiary": "#F5EEF0",
+    "onSurfaceTertiary": "#69424B",
+    "surfaceInverse": "#1F0A0E",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#CC143C",
+    "brandPrimary": "#CC143C",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#E8436E",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#FADEE3",
+    "onBrandTertiary": "#8A0F2C",
+    "success": "#128A4A",
+    "onSuccess": "#FFFFFF",
+    "warning": "#D97706",
+    "onWarning": "#FFFFFF",
+    "error": "#B31222",
+    "onError": "#FFFFFF",
+    "info": "#4A2A31",
+    "onInfo": "#FFFFFF",
+    "border": "#EBE3E5",
+    "borderStrong": "#D6C5C8",
+    "divider": "#F0E8EA"
+  },
+  "typography": {
+    "displayFontFamily": "Playfair Display",
+    "textFontFamily": "DM Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24,
+      "3xl": 32
+    }
+  },
+  "spacing": {
+    "rule": "Generous cinematic spacing. Content should breathe. Use md/lg for internal card padding, and xl/2xl between sections.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "stack_only",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use heavy glass panels (expo-blur) over the video feed for overlays like partner name, match status, and the Next button.",
+      "Use glassmorphism for the Auth screen card against the abstract bokeh background.",
+      "Layer a tinted scrim (surfaceInverse gradient) between the background video/image and text to ensure contrast."
+    ],
+    "dont's": [
+      "Do not apply blur over form inputs or standard profile text.",
+      "Do not use heavy drop shadows; let the glass and background blur handle elevation."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-blur",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Auth",
+      "purpose": "Elegant login and registration to enter the premium Sugar experience.",
+      "states": {
+        "loading": "Centered loading spinner on glass panel.",
+        "empty": "N/A",
+        "error": "Glass toast with red tint."
+      },
+      "layout": "Full-bleed luxurious abstract background image (`auth_hero`). A glassmorphic card (blurred, surface white at 70% opacity) centered on the screen holding the email/password inputs. Large 'Sugar' display serif logo at the top."
+    },
+    {
+      "name": "ProfileVerification",
+      "purpose": "Verify identity via selfie upload for a premium, trusted dating pool.",
+      "states": {
+        "loading": "Uploading selfie with a subtle progress ring.",
+        "empty": "Prompt to 'Take a Selfie' inside a large dashed rounded card.",
+        "error": "Verification failed message."
+      },
+      "layout": "Clean white base (surface). Editorial serif heading. Large hero card displaying the ID/Selfie mock image (`verification_demo`). A sticky primary CTA 'Submit Verification' pinned to the bottom."
+    },
+    {
+      "name": "Lobby",
+      "purpose": "Welcome the user and request camera permissions before entering the live dating pool.",
+      "states": {
+        "loading": "N/A",
+        "empty": "Camera permission button if denied.",
+        "error": "Camera error."
+      },
+      "layout": "Full-bleed camera feed (or `auth_hero` background if permission not yet granted). Large serif greeting 'Welcome to Sugar'. A massive sticky 'Start Dating' brandPrimary CTA anchored at the bottom."
+    },
+    {
+      "name": "VideoStage",
+      "purpose": "Live random video chatting. Swipe left or tap Next to disconnect instantly.",
+      "states": {
+        "loading": "Searching for Sugar... A cinematic pulsating glass circle over a blurred background.",
+        "empty": "N/A",
+        "error": "Connection lost, retry button on glass panel."
+      },
+      "layout": "Full-screen partner feed image (`partner_demo`) acting as a mock WebRTC video. A top-to-bottom gradient scrim guarantees UI contrast. A small PiP window (`self_demo`) with a white border at the top right. A bold glass 'Next' pill button at the bottom center, and swipe gestures enabled on the whole screen to trigger the Next action. Partner name in a sleek glass chip."
+    }
+  ],
+  "images": {
+    "auth_hero": {
+      "url": "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwxfHxsdXh1cmlvdXMlMjByb21hbnRpYyUyMGFic3RyYWN0JTIwYmx1ciUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Soft pink and white luxury bokeh lights"
+    },
+    "partner_demo": {
+      "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwxfHxiZWF1dGlmdWwlMjB5b3VuZyUyMHdvbWFuJTIwY2luZW1hdGljJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cinematic portrait of a young woman"
+    },
+    "partner_demo_male": {
+      "url": "https://images.unsplash.com/photo-1450133064473-71024230f91b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwxfHxoYW5kc29tZSUyMHlvdW5nJTIwbWFuJTIwY2luZW1hdGljJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cinematic portrait of a young man"
+    },
+    "self_demo": {
+      "url": "https://images.pexels.com/photos/27328335/pexels-photo-27328335.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "alt": "Selfie camera feed mock"
+    },
+    "verification_demo": {
+      "url": "https://images.unsplash.com/photo-1514582086679-4024becf927e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxzbWFydHBob25lJTIwc2VsZmllJTIwcGhvdG8lMjBJRCUyMGNhcmQlMjB2ZXJpZmljYXRpb24lMjBtb2NrfGVufDB8fHx8MTc4NTg4NTI3MHww&ixlib=rb-4.1.0&q=85",
+      "alt": "Smartphone selfie verification mock"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the color palette: White background with deep crimson (brandPrimary) and warm rose (brandSecondary).",
+    "Use Playfair Display for headings/logos and DM Sans for body/inputs (load using @expo-google-fonts).",
+    "The 'Video Stage' MUST use a full-bleed absolute-positioned mock image (partner_demo) to simulate WebRTC.",
+    "Include a gradient scrim (top to bottom, transparent to 70% surfaceInverse) on the Video Stage to ensure the 'Next' button and partner name remain readable against the video feed.",
+    "Implement the 'Next' action using a Swipe left gesture (react-native-gesture-handler) across the screen OR the explicit 'Next' pill button at the bottom.",
+    "In the Lobby, structure a visually rich 'Searching for Sugar...' state (e.g., using Reanimated to pulse a glass circle).",
+    "Do NOT use generic blue or indigo colors. Stick to the luxury red/pink/white theme.",
+    "Implement the gender-individualized aspect by defaulting to 'brandPrimary' (Crimson) but allowing 'brandSecondary' (Rose) to be swapped in for female-identified flows/components if possible, or use them as a gradient.",
+    "Ensure all buttons are wrapped in a Pressable with 0.98 scale down effect and no heavy shadows."
+  ],
+  "haptics": {
+    "primary_button_press": "impactLight",
+    "swipe_next": "impactMedium",
+    "match_connected": "notificationSuccess",
+    "verification_success": "notificationSuccess"
+  }
+}
