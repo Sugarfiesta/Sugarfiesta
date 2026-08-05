@@ -173,12 +173,16 @@ export default function StageScreen() {
       setReportOpen(false);
       api.report(target, reason).catch(() => {});
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast("Danke, Meldung gesendet");
-      // reporting also skips to the next partner
+      showToast("Gemeldet & blockiert");
+      // reporting ALSO blocks: end the call and never re-match this user
       setChatOpen(false);
       setPartner(null);
       setStatus("searching");
-      wsRef.current?.send(JSON.stringify({ type: "next" }));
+      if (target) {
+        wsRef.current?.send(JSON.stringify({ type: "block", target }));
+      } else {
+        wsRef.current?.send(JSON.stringify({ type: "next" }));
+      }
     },
     [partner, showToast]
   );

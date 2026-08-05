@@ -472,6 +472,21 @@ async def subscribe(body: SubscribeBody, user: Annotated[dict, Depends(get_curre
     return to_public(user)
 
 
+@api_router.delete("/account")
+async def delete_account(user: Annotated[dict, Depends(get_current_user)]):
+    uid = user["id"]
+    match_ids = []
+    async for m in db.matches.find({"users": uid}, {"_id": 0, "id": 1}):
+        match_ids.append(m["id"])
+    if match_ids:
+        await db.messages.delete_many({"match_id": {"$in": match_ids}})
+    await db.matches.delete_many({"users": uid})
+    await db.swipes.delete_many({"$or": [{"from": uid}, {"to": uid}]})
+    await db.reports.delete_many({"reporter_id": uid})
+    await db.users.delete_one({"id": uid})
+    return {"ok": True}
+
+
 # ----------------------------- Matching (WebSocket) -----------------------------
 BOTS = [
     {"name": "Valentina", "gender": "female"},

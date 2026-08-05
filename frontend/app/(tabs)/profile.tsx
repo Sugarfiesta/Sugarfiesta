@@ -232,6 +232,13 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }} />
           <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
         </Pressable>
+
+        <Pressable testID="open-settings-row" onPress={() => router.push("/settings")} style={styles.settingsRow}>
+          <Feather name="shield" size={18} color={colors.onSurface} />
+          <Text style={styles.subText}>Sicherheit & Einstellungen</Text>
+          <View style={{ flex: 1 }} />
+          <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+        </Pressable>
       </KeyboardAwareScrollView>
 
       {showCountry && (
@@ -330,6 +337,7 @@ const styles = StyleSheet.create({
   saveBtn: { height: 56, borderRadius: radius.pill, backgroundColor: colors.brandPrimary, alignItems: "center", justifyContent: "center", marginTop: spacing.md },
   saveText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onBrandPrimary },
   subRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider, marginTop: spacing.md },
+  settingsRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider },
   subText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurface },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   modalCard: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: spacing.lg, paddingTop: spacing.md },

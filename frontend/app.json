@@ -12,9 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.emergent.randommatch.ejoaem",
       "infoPlist": {
-        "NSCameraUsageDescription": "Live-Video mit deinem Match zeigen",
-        "NSMicrophoneUsageDescription": "Sprich live mit deinem Match",
-        "NSPhotoLibraryUsageDescription": "Selfie zur Verifizierung auswählen"
+        "NSCameraUsageDescription": "Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon, damit du andere Nutzer im Live-Video-Chat sehen und mit ihnen sprechen kannst.",
+        "NSMicrophoneUsageDescription": "Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon, damit du andere Nutzer im Live-Video-Chat sehen und mit ihnen sprechen kannst.",
+        "NSPhotoLibraryUsageDescription": "Wähle Fotos für dein Profil aus."
       }
     },
     "android": {
@@ -40,15 +40,15 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Live-Video mit deinem Match zeigen",
-          "microphonePermission": "Sprich live mit deinem Match"
+          "cameraPermission": "Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon, damit du andere Nutzer im Live-Video-Chat sehen und mit ihnen sprechen kannst.",
+          "microphonePermission": "Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon, damit du andere Nutzer im Live-Video-Chat sehen und mit ihnen sprechen kannst."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Selfie zur Verifizierung auswählen",
-          "cameraPermission": "Selfie zur Verifizierung aufnehmen"
+          "photosPermission": "Wähle Fotos für dein Profil aus.",
+          "cameraPermission": "Nimm ein Live-Selfie zur Verifizierung auf."
         }
       ],
       [

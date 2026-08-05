@@ -100,6 +100,7 @@ export const api = {
   getSubscription: () => req("/subscription", { method: "GET" }, true),
   subscribe: (tier: string) =>
     req("/subscription", { method: "POST", body: JSON.stringify({ tier }) }, true),
+  deleteAccount: () => req("/account", { method: "DELETE" }, true),
 };
 
 export function wsUrl(token: string) {

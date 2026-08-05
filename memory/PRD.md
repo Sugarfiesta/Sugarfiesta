@@ -52,6 +52,14 @@ Build "Sugar", a mobile random live-video dating app (Chatroulette/Omegle vibe, 
 - WebRTC-Gerüst (build-only): react-native-webrtc + @config-plugins/react-native-webrtc + expo-dev-client, Signaling-Relay {type:"signal"} über WebSocket, src/webrtc mit Web-Stub. Volles Live-Video erst nach Native-Build. [done]
 - Getestet: Backend 15/15 (+12/12) pytest bestanden; alle Frontend-Flows vom Testing-Agent bestätigt; keine kritischen Bugs.
 
+## Implemented (2026-06, update 4 — UGC-Safety / App-Store-Compliance)
+- EULA-Gate beim allerersten Start (src/components/EulaGate, storage-Flag "sugar_eula_accepted") mit Zustimmungstext + Zero-Tolerance-Regeln; App erst nach „Akzeptieren" nutzbar. [done]
+- Melden & Blockieren im Video-Stage (Rail Chat/Melden/Block) – gut sichtbar. [done]
+- Report/Block-Logik: sofortiges Trennen der Verbindung; blockierte ID wird persistiert (user.blocked) und vom Matchmaking dauerhaft ignoriert (_compatible). Melden blockiert jetzt ebenfalls. [done]
+- Account-Löschung (Apple-Pflicht): /settings mit rotem „Account unwiderruflich löschen" + Bestätigung; DELETE /api/account löscht User, Swipes, Matches, Messages, Reports; lokale Daten werden zurückgesetzt. Verlinkt aus Profil. [done]
+- Permission-Strings (app.json): NSCamera/NSMicrophone + expo-camera Plugin mit exaktem Text „Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon…". [done]
+- Verifiziert: DELETE /api/account (200, User weg, Login danach 401); EULA erscheint beim ersten Start und schaltet nach Zustimmung frei.
+
 ## Backlog (prioritized)
 ### P0
 - Real WebRTC video (react-native-webrtc) — requires deploy + native build; wire signaling over existing WebSocket.
