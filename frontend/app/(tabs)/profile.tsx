@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { Image } from "expo-image";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -38,14 +39,56 @@ export default function ProfileScreen() {
   const [country, setCountry] = useState(user?.country || "");
   const [photos, setPhotos] = useState<string[]>(user?.photos || []);
   const [pref, setPref] = useState(user?.preference || "everyone");
+  const [religion, setReligion] = useState(user?.religion || "");
+  const [hobby, setHobby] = useState(user?.hobby || "");
+  const [job, setJob] = useState(user?.job || "");
+  const [storyBusy, setStoryBusy] = useState(false);
+  const [viewer, setViewer] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showCountry, setShowCountry] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const tierColor = TIER_COLORS[user?.tier || "free"];
+  const isVIP = user?.tier === "vip";
 
   const flash = (t: string) => {
     setToast(t);
     setTimeout(() => setToast(null), 1800);
+  };
+
+  const postStory = async () => {
+    if (storyBusy) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      flash("Fotozugriff benötigt");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6, base64: true });
+    if (res.canceled) return;
+    const asset = res.assets[0];
+    const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+    setStoryBusy(true);
+    try {
+      const result = await api.addStory(uri);
+      if (!result.ok) {
+        flash(result.explicit ? "Story abgelehnt: unangemessener Inhalt" : "Story abgelehnt");
+        return;
+      }
+      setUser(result.user);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      flash("Story gepostet");
+    } catch {
+      flash("Upload fehlgeschlagen");
+    } finally {
+      setStoryBusy(false);
+    }
+  };
+
+  const skipDetails = () => {
+    Keyboard.dismiss();
+    setReligion("");
+    setHobby("");
+    setJob("");
+    flash("Details übersprungen");
   };
 
   const addPhoto = async () => {
@@ -98,6 +141,9 @@ export default function ProfileScreen() {
         bio,
         age: age ? parseInt(age, 10) : null,
         country,
+        religion,
+        hobby,
+        job,
       });
       setUser(updated);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -124,6 +170,8 @@ export default function ProfileScreen() {
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing["3xl"] }]}
         bottomOffset={20}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerRow}>
@@ -155,6 +203,24 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* Storys */}
+        <Text style={styles.sectionLabel}>Deine Storys</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyRow}>
+          <Pressable testID="post-story" onPress={postStory} style={styles.addStory}>
+            {storyBusy ? (
+              <ActivityIndicator color={colors.onBrandPrimary} />
+            ) : (
+              <Feather name="plus" size={26} color={colors.onBrandPrimary} />
+            )}
+          </Pressable>
+          {(user?.stories || []).map((s, i) => (
+            <Pressable key={`${i}`} testID={`story-${i}`} onPress={() => setViewer(s)} style={styles.storyCircle}>
+              <Image source={{ uri: s }} style={styles.storyImg} contentFit="cover" />
+            </Pressable>
+          ))}
+        </ScrollView>
+        <Text style={styles.hint}>Tippe auf „+", um eine Story zu posten. Storys werden automatisch geprüft.</Text>
 
         {/* Photos */}
         <Text style={styles.sectionLabel}>Meine Fotos</Text>
@@ -202,6 +268,9 @@ export default function ProfileScreen() {
             value={age}
             onChangeText={(t) => setAge(t.replace(/[^0-9]/g, "").slice(0, 2))}
             keyboardType="number-pad"
+            returnKeyType="done"
+            blurOnSubmit
+            onSubmitEditing={() => Keyboard.dismiss()}
           />
         </View>
         <Pressable testID="profile-country" style={styles.field} onPress={() => setShowCountry(true)}>

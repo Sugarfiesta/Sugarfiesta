@@ -18,6 +18,10 @@ export type User = {
   tier?: string;
   tier_until?: string | null;
   is_admin?: boolean;
+  religion?: string;
+  hobby?: string;
+  job?: string;
+  stories?: string[];
 };
 
 export type DiscoverCard = {
@@ -89,6 +93,9 @@ export const api = {
     age?: number | null;
     country?: string;
     photos?: string[];
+    religion?: string;
+    hobby?: string;
+    job?: string;
   }) => req("/profile", { method: "PATCH", body: JSON.stringify(data) }, true),
   discover: (country?: string) =>
     req(`/discover${country ? `?country=${encodeURIComponent(country)}` : ""}`, { method: "GET" }, true),
@@ -104,6 +111,8 @@ export const api = {
   deleteAccount: () => req("/account", { method: "DELETE" }, true),
   addPhoto: (photo: string) =>
     req("/profile/photo", { method: "POST", body: JSON.stringify({ photo }) }, true),
+  addStory: (photo: string) =>
+    req("/profile/story", { method: "POST", body: JSON.stringify({ photo }) }, true),
   adminReports: () => req("/admin/reports", { method: "GET" }, true),
   adminResolve: (id: string, action: "dismiss" | "ban") =>
     req(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ action }) }, true),

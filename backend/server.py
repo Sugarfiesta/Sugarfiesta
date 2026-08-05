@@ -95,6 +95,9 @@ class ProfileBody(BaseModel):
     age: Optional[int] = None
     country: Optional[str] = None
     photos: Optional[List[str]] = None
+    religion: Optional[str] = None
+    hobby: Optional[str] = None
+    job: Optional[str] = None
 
 
 class SwipeBody(BaseModel):
@@ -125,6 +128,10 @@ class PublicUser(BaseModel):
     tier: str = "free"
     tier_until: Optional[str] = None
     is_admin: bool = False
+    religion: str = ""
+    hobby: str = ""
+    job: str = ""
+    stories: List[str] = []
 
 
 class PhotoBody(BaseModel):
@@ -165,6 +172,10 @@ def to_public(doc: dict) -> PublicUser:
         tier=doc.get("tier", "free"),
         tier_until=doc.get("tier_until"),
         is_admin=bool(doc.get("is_admin", False)),
+        religion=doc.get("religion", "") or "",
+        hobby=doc.get("hobby", "") or "",
+        job=doc.get("job", "") or "",
+        stories=doc.get("stories", []) or [],
     )
 
 
@@ -230,6 +241,10 @@ async def signup(body: SignupBody):
         "tier_until": None,
         "is_admin": email == ADMIN_EMAIL,
         "banned": False,
+        "religion": "",
+        "hobby": "",
+        "job": "",
+        "stories": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -403,10 +418,29 @@ async def update_profile(body: ProfileBody, user: Annotated[dict, Depends(get_cu
         updates["country"] = body.country[:4].upper()
     if body.photos is not None:
         updates["photos"] = body.photos[:6]
+    if body.religion is not None:
+        updates["religion"] = body.religion[:60]
+    if body.hobby is not None:
+        updates["hobby"] = body.hobby[:60]
+    if body.job is not None:
+        updates["job"] = body.job[:60]
     if updates:
         await db.users.update_one({"id": user["id"]}, {"$set": updates})
     user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return to_public(user)
+
+
+@api_router.post("/profile/story")
+async def add_story(body: PhotoBody, user: Annotated[dict, Depends(get_current_user)]):
+    if not body.photo or len(body.photo) < 100:
+        raise HTTPException(status_code=400, detail="Ungültiges Bild")
+    if await moderate_image(body.photo):
+        return {"ok": False, "explicit": True}
+    stories = (user.get("stories", []) or [])
+    stories = ([body.photo] + stories)[:10]
+    await db.users.update_one({"id": user["id"]}, {"$set": {"stories": stories}})
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"ok": True, "explicit": False, "user": to_public(u).model_dump()}
 
 
 @api_router.get("/discover")
