@@ -39,6 +39,19 @@ Build "Sugar", a mobile random live-video dating app (Chatroulette/Omegle vibe, 
 - Live text chat: ws `chat` relay between real partners; canned bot auto-replies for solo demo; chat overlay with bubbles + keyboard-safe input. [done]
 - Verified end-to-end: chat relay, block→both-bots, preference→male bot, bot reply, report all pass; UI screenshots confirm.
 
+## Implemented (2026-06, update 3 — big expansion)
+- Tab-Navigation (stack→tabs): Entdecken · Video · Matches · Profil. [done]
+- Profil-Erstellung: Name, Bio, Alter, Land, bis zu 6 Fotos (Kamera/Galerie), Präferenz. PATCH /api/profile. [done]
+- Foto-Matching (Entdecken): Tinder-Swipe-Deck (Gesten + Buttons Pass/Herz/Like), Reanimated-Karten, „Es ist ein Match!"-Overlay. GET /api/discover, POST /api/swipe. Demo-Profile matchen immer zurück. [done]
+- Gefällt-mir-Herz: Super-Like (Herz) + gegenseitig → dauerhaftes Match. [done]
+- Match-Historie: Matches-Tab (Liste + letzte Nachricht + Pull-to-Refresh) und persistenter DM-Chat /chat/[id] mit Demo-Auto-Antworten. GET /api/matches, /matches/{id}, POST /matches/{id}/messages. [done]
+- Länder-Filter im Entdecken-Tab, gated ab Sugar Gold (sonst → Paywall). [done]
+- Abo-Modelle (Mock, kein echtes Geld): Free 0€ · Sugar Plus 4,99€ · Sugar Gold 7,99€ · Sugar VIP 15,99€ mit kreativen Feature-Listen. /subscribe Screen. GET/POST /api/subscription. [done]
+- Video-Feature kostenpflichtig ab Sugar Plus: Paywall im Video-Tab + WebSocket sendet {type:"paywall"} bei tier=free. [done]
+- Kamera-Verifizierung: Galerie-Auswahl entfernt, nur Live-Selfie. [done]
+- WebRTC-Gerüst (build-only): react-native-webrtc + @config-plugins/react-native-webrtc + expo-dev-client, Signaling-Relay {type:"signal"} über WebSocket, src/webrtc mit Web-Stub. Volles Live-Video erst nach Native-Build. [done]
+- Getestet: Backend 15/15 (+12/12) pytest bestanden; alle Frontend-Flows vom Testing-Agent bestätigt; keine kritischen Bugs.
+
 ## Backlog (prioritized)
 ### P0
 - Real WebRTC video (react-native-webrtc) — requires deploy + native build; wire signaling over existing WebSocket.

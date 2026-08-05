@@ -405,7 +405,7 @@ export default function StageScreen() {
 
       {/* Toast */}
       {toast && (
-        <View style={[styles.toast, { top: insets.top + 70 }]} testID="stage-toast" pointerEvents="none">
+        <View style={[styles.toast, { top: insets.top + 70, pointerEvents: "none" }]} testID="stage-toast">
           <Feather name="check-circle" size={15} color={colors.onSurfaceInverse} />
           <Text style={styles.toastText}>{toast}</Text>
         </View>

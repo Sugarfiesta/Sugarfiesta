@@ -261,7 +261,7 @@ export default function ProfileScreen() {
       )}
 
       {toast && (
-        <View style={[styles.toast, { top: insets.top + 60 }]} pointerEvents="none" testID="profile-toast">
+        <View style={[styles.toast, { top: insets.top + 60, pointerEvents: "none" }]} testID="profile-toast">
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
