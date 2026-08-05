@@ -1,38 +1,38 @@
 {
   "app_name": "Sugar",
-  "personality": "6 Glass / Luxe (Adapted for Light Mode/White with Red & Pink accents)",
-  "personality_one_liner": "A cinematic, highly polished luxurious dating experience that feels expensive, using striking white, deep crimson, and warm rose to frame the live connections.",
+  "personality": "4 Tactile / Playful LIGHT (Candy / Kawaii Aesthetic)",
+  "personality_one_liner": "A pure, appetizing kawaii candy-store experience that feels glossy, soft, and impossibly sweet.",
   "color": {
-    "surface": "#FFFFFF",
-    "onSurface": "#1F0A0E",
-    "surfaceSecondary": "#FCF9FA",
-    "onSurfaceSecondary": "#4A2A31",
-    "surfaceTertiary": "#F5EEF0",
-    "onSurfaceTertiary": "#69424B",
-    "surfaceInverse": "#1F0A0E",
+    "surface": "#FFF0F5",
+    "onSurface": "#4A2E3B",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#4A2E3B",
+    "surfaceTertiary": "#FDE4EC",
+    "onSurfaceTertiary": "#4A2E3B",
+    "surfaceInverse": "#4A2E3B",
     "onSurfaceInverse": "#FFFFFF",
-    "brand": "#CC143C",
-    "brandPrimary": "#CC143C",
+    "brand": "#FF528A",
+    "brandPrimary": "#FF528A",
     "onBrandPrimary": "#FFFFFF",
-    "brandSecondary": "#E8436E",
-    "onBrandSecondary": "#FFFFFF",
-    "brandTertiary": "#FADEE3",
-    "onBrandTertiary": "#8A0F2C",
-    "success": "#128A4A",
-    "onSuccess": "#FFFFFF",
-    "warning": "#D97706",
-    "onWarning": "#FFFFFF",
-    "error": "#B31222",
+    "brandSecondary": "#98F5E1",
+    "onBrandSecondary": "#4A2E3B",
+    "brandTertiary": "#D4C4FB",
+    "onBrandTertiary": "#4A2E3B",
+    "accentCyan": "#00E5FF",
+    "accentLemon": "#FDF07B",
+    "success": "#4ADE80",
+    "onSuccess": "#114723",
+    "warning": "#FDF07B",
+    "onWarning": "#594802",
+    "error": "#FF4D4D",
     "onError": "#FFFFFF",
-    "info": "#4A2A31",
-    "onInfo": "#FFFFFF",
-    "border": "#EBE3E5",
-    "borderStrong": "#D6C5C8",
-    "divider": "#F0E8EA"
+    "border": "rgba(255, 105, 180, 0.15)",
+    "borderStrong": "rgba(255, 255, 255, 0.6)",
+    "divider": "rgba(255, 105, 180, 0.1)"
   },
   "typography": {
-    "displayFontFamily": "Playfair Display",
-    "textFontFamily": "DM Sans",
+    "displayFontFamily": "Fredoka",
+    "textFontFamily": "Nunito",
     "scale": {
       "sm": 12,
       "base": 14,
@@ -43,7 +43,7 @@
     }
   },
   "spacing": {
-    "rule": "Generous cinematic spacing. Content should breathe. Use md/lg for internal card padding, and xl/2xl between sections.",
+    "rule": "Generous, airy spacing to ensure pastel elements don't feel crowded. Pill-shaped buttons and perfectly circular icons.",
     "xs": 4,
     "sm": 8,
     "md": 12,
@@ -53,29 +53,28 @@
     "3xl": 48
   },
   "radius_tokens": {
-    "sm": 8,
-    "md": 16,
-    "lg": 24,
+    "sm": 12,
+    "md": 20,
+    "lg": 28,
     "pill": 999
   },
-  "shadow_tier": "0",
-  "navigation": "stack_only",
+  "shadow_tier": "2",
+  "navigation": "bottom_tabs",
   "icon_set": "Feather",
   "glassmorphism": {
-    "enabled": true,
+    "enabled": "true",
     "do's": [
-      "Use heavy glass panels (expo-blur) over the video feed for overlays like partner name, match status, and the Next button.",
-      "Use glassmorphism for the Auth screen card against the abstract bokeh background.",
-      "Layer a tinted scrim (surfaceInverse gradient) between the background video/image and text to ensure contrast."
+      "Use glossy semi-transparent white overlays over brand colors to simulate gel/candy.",
+      "Apply soft, diffuse colored shadows below interactive elements to simulate light passing through gummy textures."
     ],
     "dont's": [
-      "Do not apply blur over form inputs or standard profile text.",
-      "Do not use heavy drop shadows; let the glass and background blur handle elevation."
+      "Use harsh dark gray/black shadows.",
+      "Overuse heavy blur that muddies the pastel colors."
     ]
   },
   "platform_libraries": {
     "glass": {
-      "ios": "expo-blur",
+      "ios": "expo-glass-effect",
       "android": "expo-blur",
       "low_end_android_fallback": "solid surfaceSecondary"
     },
@@ -87,83 +86,36 @@
   },
   "screens": [
     {
-      "name": "Auth",
-      "purpose": "Elegant login and registration to enter the premium Sugar experience.",
+      "name": "Global Candy Directives",
+      "purpose": "Define the overarching candy UI patterns applied to all screens.",
       "states": {
-        "loading": "Centered loading spinner on glass panel.",
-        "empty": "N/A",
-        "error": "Glass toast with red tint."
+        "loading": "Swirling Lollipop SVG using react-native-reanimated (rotation loop).",
+        "empty": "Melted ice cream or marshmallow kawaii illustration.",
+        "error": "Oops! Dropped ice cream text."
       },
-      "layout": "Full-bleed luxurious abstract background image (`auth_hero`). A glassmorphic card (blurred, surface white at 70% opacity) centered on the screen holding the email/password inputs. Large 'Sugar' display serif logo at the top."
-    },
-    {
-      "name": "ProfileVerification",
-      "purpose": "Verify identity via selfie upload for a premium, trusted dating pool.",
-      "states": {
-        "loading": "Uploading selfie with a subtle progress ring.",
-        "empty": "Prompt to 'Take a Selfie' inside a large dashed rounded card.",
-        "error": "Verification failed message."
-      },
-      "layout": "Clean white base (surface). Editorial serif heading. Large hero card displaying the ID/Selfie mock image (`verification_demo`). A sticky primary CTA 'Submit Verification' pinned to the bottom."
-    },
-    {
-      "name": "Lobby",
-      "purpose": "Welcome the user and request camera permissions before entering the live dating pool.",
-      "states": {
-        "loading": "N/A",
-        "empty": "Camera permission button if denied.",
-        "error": "Camera error."
-      },
-      "layout": "Full-bleed camera feed (or `auth_hero` background if permission not yet granted). Large serif greeting 'Welcome to Sugar'. A massive sticky 'Start Dating' brandPrimary CTA anchored at the bottom."
-    },
-    {
-      "name": "VideoStage",
-      "purpose": "Live random video chatting. Swipe left or tap Next to disconnect instantly.",
-      "states": {
-        "loading": "Searching for Sugar... A cinematic pulsating glass circle over a blurred background.",
-        "empty": "N/A",
-        "error": "Connection lost, retry button on glass panel."
-      },
-      "layout": "Full-screen partner feed image (`partner_demo`) acting as a mock WebRTC video. A top-to-bottom gradient scrim guarantees UI contrast. A small PiP window (`self_demo`) with a white border at the top right. A bold glass 'Next' pill button at the bottom center, and swipe gestures enabled on the whole screen to trigger the Next action. Partner name in a sleek glass chip."
+      "layout": "Use 'Marshmallow Melt' gradients for backgrounds. Gummy Buttons for CTAs. Rainbow Candy border for Avatars. Sweet framed icons (Feather icons inside a tinted circular view with white inner borders)."
     }
   ],
   "images": {
-    "auth_hero": {
-      "url": "https://images.unsplash.com/photo-1519750783826-e2420f4d687f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwxfHxsdXh1cmlvdXMlMjByb21hbnRpYyUyMGFic3RyYWN0JTIwYmx1ciUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
-      "alt": "Soft pink and white luxury bokeh lights"
-    },
-    "partner_demo": {
-      "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwxfHxiZWF1dGlmdWwlMjB5b3VuZyUyMHdvbWFuJTIwY2luZW1hdGljJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
-      "alt": "Cinematic portrait of a young woman"
-    },
-    "partner_demo_male": {
-      "url": "https://images.unsplash.com/photo-1450133064473-71024230f91b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzF8MHwxfHNlYXJjaHwxfHxoYW5kc29tZSUyMHlvdW5nJTIwbWFuJTIwY2luZW1hdGljJTIwcG9ydHJhaXR8ZW58MHx8fHwxNzg1ODg1MjcwfDA&ixlib=rb-4.1.0&q=85",
-      "alt": "Cinematic portrait of a young man"
-    },
-    "self_demo": {
-      "url": "https://images.pexels.com/photos/27328335/pexels-photo-27328335.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-      "alt": "Selfie camera feed mock"
-    },
-    "verification_demo": {
-      "url": "https://images.unsplash.com/photo-1514582086679-4024becf927e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxzbWFydHBob25lJTIwc2VsZmllJTIwcGhvdG8lMjBJRCUyMGNhcmQlMjB2ZXJpZmljYXRpb24lMjBtb2NrfGVufDB8fHx8MTc4NTg4NTI3MHww&ixlib=rb-4.1.0&q=85",
-      "alt": "Smartphone selfie verification mock"
+    "empty_state_candy": {
+      "url": "https://images.unsplash.com/photo-1518691340140-512e66ce957b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxjdXRlJTIwbWFyc2htYWxsb3clMjBwYXN0ZWwlMjB2ZWN0b3IlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc4NTk3MzI0N3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Pastel marshmallows"
     }
   },
-  "instructions_to_main_agent": [
-    "Strictly follow the color palette: White background with deep crimson (brandPrimary) and warm rose (brandSecondary).",
-    "Use Playfair Display for headings/logos and DM Sans for body/inputs (load using @expo-google-fonts).",
-    "The 'Video Stage' MUST use a full-bleed absolute-positioned mock image (partner_demo) to simulate WebRTC.",
-    "Include a gradient scrim (top to bottom, transparent to 70% surfaceInverse) on the Video Stage to ensure the 'Next' button and partner name remain readable against the video feed.",
-    "Implement the 'Next' action using a Swipe left gesture (react-native-gesture-handler) across the screen OR the explicit 'Next' pill button at the bottom.",
-    "In the Lobby, structure a visually rich 'Searching for Sugar...' state (e.g., using Reanimated to pulse a glass circle).",
-    "Do NOT use generic blue or indigo colors. Stick to the luxury red/pink/white theme.",
-    "Implement the gender-individualized aspect by defaulting to 'brandPrimary' (Crimson) but allowing 'brandSecondary' (Rose) to be swapped in for female-identified flows/components if possible, or use them as a gradient.",
-    "Ensure all buttons are wrapped in a Pressable with 0.98 scale down effect and no heavy shadows."
-  ],
   "haptics": {
-    "primary_button_press": "impactLight",
-    "swipe_next": "impactMedium",
-    "match_connected": "notificationSuccess",
-    "verification_success": "notificationSuccess"
-  }
+    "button_press": "light",
+    "swipe_match": "success",
+    "swipe_pass": "rigid",
+    "tab_press": "selection"
+  },
+  "instructions_to_main_agent": [
+    "BACKGROUNDS: Implement 'Marshmallow Melt' gradient: `<LinearGradient colors={['#FFF0F5', '#E0F7FA']} .../>`. Ensure soft transition mimicking melted ice cream.",
+    "BUTTONS (Glossy Gummy Neumorphism): Container `View` with `borderRadius: 999` and `backgroundColor: theme.brandPrimary`. Add colored outer shadow: `shadowColor: theme.brandPrimary`, `shadowOpacity: 0.4`, `shadowRadius: 12`, `shadowOffset: {width:0, height:6}`. Inside, layer an absolute `<LinearGradient colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0)']} />` covering the top 50% to act as a specular gloss highlight. Add `borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)'` for a crisp glass edge.",
+    "RAINBOW BORDER (Avatars): Wrap `<Image>` in a `<LinearGradient>` (acting as a border ring). Colors: `['#FF528A', '#FDF07B', '#98F5E1', '#D4C4FB']`. Apply padding (e.g., 3-4px) to the gradient and ensure both gradient and inner image have `borderRadius: 999`. Add a thin 1px white border to the inner image so it pops against the rainbow ring.",
+    "LOADER (Swirling Lollipop): Create an SVG containing a circle (candy) with a spiral `<Path>` inside and a straight line (stick). Wrap the candy group in an `Animated.View` and use `react-native-reanimated` with `useSharedValue(0)` and `withRepeat(withTiming(360, {duration: 1000}), -1)` to rotate the candy part.",
+    "SUGAR LOGO (SVG): Draw a Heart shape using `<Path d='M...'>`. Use `<Defs><LinearGradient>` or `<Pattern>` to create diagonal pastel candy-cane stripes (pink, white, mint) masking the heart. Place text 'Sugar' below it using the loaded `Fredoka` font. Add a subtle white inner-shadow/highlight to the heart for the hard-candy gloss effect.",
+    "ICONS (Sweet Frames): Do not use bare Feather icons. Wrap every Feather icon in a circular `View` (`borderRadius: 999`), give it a pastel background (e.g., `surfaceTertiary`), and a white inner border (`borderColor: '#FFF', borderWidth: 1`).",
+    "FONT LOADING: Ensure `Fredoka` (Display/Headings) and `Nunito` (Body) are explicitly loaded via `expo-font`. Fallback to system rounded fonts if loading is delayed.",
+    "COLOR CONTRAST: Do not use black text. Use the deep berry color (`#4A2E3B`) for all text to maintain the soft aesthetic while preserving WCAG readability against pastel backgrounds."
+  ]
 }
