@@ -48,7 +48,6 @@ export default function ProfileScreen() {
   const [showCountry, setShowCountry] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const tierColor = TIER_COLORS[user?.tier || "free"];
-  const isVIP = user?.tier === "vip";
 
   const flash = (t: string) => {
     setToast(t);
@@ -281,6 +280,26 @@ export default function ProfileScreen() {
           <Feather name="chevron-down" size={18} color={colors.onSurfaceTertiary} />
         </Pressable>
 
+        {/* Optional details */}
+        <View style={styles.detailsHead}>
+          <Text style={styles.sectionLabel}>Weitere Details (optional)</Text>
+          <Pressable testID="skip-details" onPress={skipDetails} hitSlop={8}>
+            <Text style={styles.skipText}>Überspringen</Text>
+          </Pressable>
+        </View>
+        <View style={styles.field}>
+          <Feather name="book-open" size={18} color={colors.onSurfaceTertiary} />
+          <TextInput testID="profile-religion" style={styles.input} placeholder="Religion" placeholderTextColor={colors.onSurfaceTertiary} value={religion} onChangeText={setReligion} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+        </View>
+        <View style={styles.field}>
+          <Feather name="heart" size={18} color={colors.onSurfaceTertiary} />
+          <TextInput testID="profile-hobby" style={styles.input} placeholder="Hobby" placeholderTextColor={colors.onSurfaceTertiary} value={hobby} onChangeText={setHobby} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+        </View>
+        <View style={styles.field}>
+          <Feather name="briefcase" size={18} color={colors.onSurfaceTertiary} />
+          <TextInput testID="profile-job" style={styles.input} placeholder="Job" placeholderTextColor={colors.onSurfaceTertiary} value={job} onChangeText={setJob} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
+        </View>
+
         {/* Preference */}
         <Text style={styles.sectionLabel}>Wen möchtest du treffen?</Text>
         <View style={styles.prefRow}>
@@ -353,6 +372,17 @@ export default function ProfileScreen() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
+
+      {viewer && (
+        <View style={StyleSheet.absoluteFill} testID="story-viewer">
+          <Image source={{ uri: viewer }} style={StyleSheet.absoluteFill} contentFit="contain" />
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            <Pressable testID="story-viewer-close" onPress={() => setViewer(null)} style={[styles.storyClose, { top: insets.top + spacing.md }]} hitSlop={12}>
+              <Feather name="x" size={26} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -382,6 +412,27 @@ const styles = StyleSheet.create({
   tierText: { fontFamily: fonts.textBold, fontSize: fontScale.sm, color: colors.onBrandPrimary },
   sectionLabel: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurface, marginTop: spacing.md },
   hint: { fontFamily: fonts.textRegular, fontSize: fontScale.sm, color: colors.onSurfaceTertiary, marginTop: -spacing.xs },
+  storyRow: { gap: spacing.sm, paddingVertical: spacing.xs },
+  addStory: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: colors.brandPrimary,
+  },
+  storyImg: { width: "100%", height: "100%" },
+  detailsHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  skipText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.brandPrimary },
+  storyClose: { position: "absolute", right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
   photoRow: { gap: spacing.sm, paddingVertical: spacing.xs },
   photoWrap: { width: 96, height: 128, borderRadius: radius.md, overflow: "hidden" },
   photo: { width: "100%", height: "100%", backgroundColor: colors.surfaceTertiary },

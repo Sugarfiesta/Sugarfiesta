@@ -72,6 +72,12 @@ export default function SettingsScreen() {
             <View style={{ flex: 1 }} />
             <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
           </Pressable>
+          <Pressable testID="link-impressum" onPress={() => router.push("/legal/impressum")} style={styles.linkRow}>
+            <Feather name="info" size={18} color={colors.onSurface} />
+            <Text style={styles.linkText}>Impressum</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+          </Pressable>
         </View>
 
         <View style={styles.dangerSection}>

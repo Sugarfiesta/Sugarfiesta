@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -45,6 +45,7 @@ export function EulaGate() {
   };
 
   const confirmAge = async () => {
+    Keyboard.dismiss();
     setAgeError(null);
     const y = parseInt(year, 10);
     const m = parseInt(month, 10);
@@ -104,21 +105,22 @@ export function EulaGate() {
         ) : (
           <>
             <Text style={styles.title}>Bestätige dein Alter</Text>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.ageBody}>
               <Feather name="calendar" size={40} color={colors.brandSecondary} />
               <Text style={styles.ageLead}>Sugar ist nur für Erwachsene. Bitte gib dein Geburtsdatum ein.</Text>
               <View style={styles.dobRow}>
                 <View style={styles.dobField}>
                   <Text style={styles.dobLabel}>Tag</Text>
-                  <TextInput testID="dob-day" style={styles.dobInput} placeholder="TT" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" maxLength={2} value={day} onChangeText={(t) => setDay(t.replace(/[^0-9]/g, ""))} />
+                  <TextInput testID="dob-day" style={styles.dobInput} placeholder="TT" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={2} value={day} onChangeText={(t) => setDay(t.replace(/[^0-9]/g, ""))} />
                 </View>
                 <View style={styles.dobField}>
                   <Text style={styles.dobLabel}>Monat</Text>
-                  <TextInput testID="dob-month" style={styles.dobInput} placeholder="MM" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" maxLength={2} value={month} onChangeText={(t) => setMonth(t.replace(/[^0-9]/g, ""))} />
+                  <TextInput testID="dob-month" style={styles.dobInput} placeholder="MM" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={2} value={month} onChangeText={(t) => setMonth(t.replace(/[^0-9]/g, ""))} />
                 </View>
                 <View style={[styles.dobField, { flex: 1.4 }]}>
                   <Text style={styles.dobLabel}>Jahr</Text>
-                  <TextInput testID="dob-year" style={styles.dobInput} placeholder="JJJJ" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" maxLength={4} value={year} onChangeText={(t) => setYear(t.replace(/[^0-9]/g, ""))} />
+                  <TextInput testID="dob-year" style={styles.dobInput} placeholder="JJJJ" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={4} value={year} onChangeText={(t) => setYear(t.replace(/[^0-9]/g, ""))} onSubmitEditing={() => Keyboard.dismiss()} blurOnSubmit />
                 </View>
               </View>
               {ageError && (
@@ -128,6 +130,7 @@ export function EulaGate() {
                 </View>
               )}
             </View>
+            </TouchableWithoutFeedback>
             <Pressable
               testID="dob-confirm"
               onPress={confirmAge}
