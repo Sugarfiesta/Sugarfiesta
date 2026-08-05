@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 3 validated all 4 new App-Store safety features + regression. Backend: 9/9 new pytest cases in /app/backend/tests/test_safety.py PASS. Photo moderation POST /api/profile/photo returns {ok:true, explicit:false, user:{...photos...}} for a real portrait JPEG (256x320 with face/shirt/texture) via the Emergent LLM key + gpt-5.4 vision model, and short/invalid photos return 400. /profile/verify accepts a safe selfie (verified=true). Admin flow end-to-end passes: reporter posts /api/report against target -> admin login (admin@sugar.app/admin1234) -> GET /api/admin/reports lists the report with reported_id -> POST /api/admin/reports/{id}/resolve {action:'ban'} returns {ok:true, banned:true} -> target login now returns 403 (banned check on /auth/login). Dismiss action marks report status='resolved' and does NOT ban. Non-admin users get 403 on both GET /admin/reports and POST /admin/reports/{id}/resolve. Regression on lisa@sugar.app/secret123: login OK, /discover returns male demo cards, swipe like demo-2 auto-matches, subscription upgrade to plus + reset to free works. Older test_features.py (15 cases) still 15/15 PASS. NOTE: pre-existing /app/backend/tests/backend_test.py has 3 stale WS tests (test_ws_bot_fallback, test_ws_stop_teardown, test_ws_real_pair_and_next) that fail because they run 'find' against free-tier users which now correctly returns paywall - not a regression from iteration 3, tests need updating to upgrade to plus first. Frontend UI (mobile 390x844): EULA gate renders with testID eula-gate, eula-accept advances to age step; DOB under 18 (01/01/2020) triggers dob-error with correct German copy ('Du musst mindestens 18 Jahre alt sein...') and blocks progression; DOB 15/05/1995 accepts and reveals the login screen (app-logo 'Sugar' visible). Lisa login navigates to /discover (Entdecken tab bar with Video/Matches/Profil visible), Profile screen for lisa shows NO 'open-admin' row (correct). Legal screens code (terms/privacy) correctly wired: /app/frontend/app/legal/terms.tsx has 8 sections incl. 'Mindestalter' + 'Zero-Tolerance', testID terms-back present; /app/frontend/app/legal/privacy.tsx has 8 sections incl. 'Foto-Moderation', testID privacy-back present. Settings.tsx uses testIDs link-terms and link-privacy pushing to /legal/terms and /legal/privacy. Profile.tsx conditionally renders 'open-admin' row only when user.is_admin. Nudity/explicit path not asserted with an actually explicit image (no such image available in test environment) but the code path is exercised: moderate_image() is called on every /profile/photo and /profile/verify, and the branch that returns {ok:false, explicit:true} / raises 422 is trivially reachable when the LLM returns EXPLICIT. Deprecated packages detected: none. React Native warnings: still the pre-existing 'props.pointerEvents is deprecated. Use style.pointerEvents' in profile toast (iteration_2 already flagged this; unchanged).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/ws (backend_test.py)", "issue": "3 pre-existing WS tests (test_ws_bot_fallback, test_ws_stop_teardown, test_ws_real_pair_and_next) fail because they issue {type:'find'} without upgrading the new user to plus, so backend correctly returns paywall. Update these tests to POST /subscription plus before find. Not a real bug."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "profile-toast (View)", "issue": "Console warning still present: 'props.pointerEvents is deprecated. Use style.pointerEvents'. Move pointerEvents into the style object. Reference: /app/frontend/app/(tabs)/profile.tsx:283 -> the toast View uses style={[..., { top: ..., pointerEvents: 'none' }]} but the pointerEvents key is inside the style object here in the current file view; investigate wherever the warning is actually emitted (likely a legacy touchable/pressable descendant). Same warning was reported in iteration_2 and is unchanged."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_safety.py",
+    "/app/backend/tests/test_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_safety.xml"
+  ],
+  "action_items": [
+    "(optional) Update the 3 stale WS tests in backend_test.py to first upgrade the new user to 'plus' via POST /subscription before sending {type:'find'} on the websocket. Otherwise they will keep failing due to correct paywall behaviour.",
+    "(optional / carried over from iteration_2) Silence the 'props.pointerEvents is deprecated' RN warning by ensuring every ancestor that sets pointerEvents does so via style, not as a JSX prop.",
+    "(nice-to-have) Consider adding a explicit-image path integration test using a fixture that the moderation model reliably classifies as EXPLICIT (or mocking moderate_image) so /profile/photo -> {ok:false, explicit:true} is asserted end-to-end."
+  ],
+  "critical_code_review_comments": [
+    "server.py grew to 888 lines (was 733). It now covers auth, profile, photo moderation, discover, swipe, matches, DM, subscription, WS matching, reports, admin, legal helpers. Time to split into modules (auth.py, profile.py, admin.py, ws.py, discover.py, subscription.py) - past the 700-line soft threshold.",
+    "moderate_image() fails open (returns False on any exception) - documented but worth logging at WARNING level and adding a metric so we notice if the LLM is silently down and every photo is being auto-approved.",
+    "Admin ban is one-way: there is no /api/admin/users/{id}/unban endpoint. If an admin bans wrongfully there is no way back except direct DB edit. Consider adding an unban endpoint.",
+    "EulaGate stores DOB as plain '${y}-${m}-${d}' in AsyncStorage - fine for MVP but re-verify server-side on signup to prevent a client bypass (currently no server-side age check).",
+    "Legal screens are hardcoded German text with no i18n. If the app ships internationally these should be localized.",
+    "Photo moderation happens on ADD but not on existing photos already stored. If a user uploads a photo pre-feature it stays until manually reported."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_safety.py (new, 9 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% for safety features (9/9 in test_safety.py). 15/15 in test_features.py. Full suite: 33/36 with 3 pre-existing WS test failures unrelated to iteration 3.",
+    "frontend": "EULA gate + age gate under-18/over-18 flow verified end-to-end. Lisa login + non-admin (no admin row) verified. Legal screens code + testIDs verified by inspection. Full admin UI drill-down (login admin -> open-admin row -> /admin list -> resolve) not completed in this UI session due to session/reload flakiness; backend admin flow is fully covered by tests."
+  },
+  "seed_data_creation": "test_safety.py creates ephemeral users test.phsafe.*, test.phbad.*, test.verfy.*, test.verfybad.*, test.na.*, test.reporter.*, test.target.*, test.rep2.*, test.tgt2.* (each unique via uuid4). test.target.* is intentionally left in banned=true state to prove the ban persists.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Three pytest files now: /app/backend/tests/backend_test.py (auth + verify + WS - 3 pre-existing failures), /app/backend/tests/test_features.py (discover/swipe/matches/DM/subscription - 15 passing), /app/backend/tests/test_safety.py (photo moderation + admin ban/dismiss + regression - 9 passing). Run: python -m pytest /app/backend/tests -v. For photo moderation UI (add photo on profile) camera capture won't work on web preview - use API or expo-go build to test end-to-end. For admin UI: login admin@sugar.app/admin1234, tap Profil tab, open-admin row appears, /admin lists reports; the resolve buttons in /admin.tsx are the untested UI piece (testIDs to confirm in admin.tsx).",
+  "rca_of_issue": "No bugs found. All 4 iteration-3 safety features verified working via targeted backend tests + frontend spot-checks of the EULA/Age gate + non-admin profile screen. The only pre-existing failures (3 WS tests in backend_test.py) predate iteration 3 and stem from a subsequent tightening that made 'find' require plus+ tier - the tests just need an extra POST /subscription {tier:'plus'} before opening the WS."
+}

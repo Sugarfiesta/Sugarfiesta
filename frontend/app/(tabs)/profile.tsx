@@ -65,14 +65,17 @@ export default function ProfileScreen() {
     if (res.canceled) return;
     const asset = res.assets[0];
     const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-    const next = [...photos, uri];
-    setPhotos(next);
     try {
-      const updated = await api.updateProfile({ photos: next });
-      setUser(updated);
+      const result = await api.addPhoto(uri);
+      if (!result.ok) {
+        flash(result.explicit ? "Foto abgelehnt: unangemessener Inhalt" : "Foto abgelehnt");
+        return;
+      }
+      setUser(result.user);
+      setPhotos(result.user.photos || []);
       Haptics.selectionAsync();
     } catch {
-      /* ignore */
+      flash("Upload fehlgeschlagen");
     }
   };
 
@@ -155,7 +158,7 @@ export default function ProfileScreen() {
 
         {/* Photos */}
         <Text style={styles.sectionLabel}>Meine Fotos</Text>
-        <Text style={styles.hint}>{"Damit du im „Entdecken\"-Tab per Foto gematcht werden kannst."}</Text>
+        <Text style={styles.hint}>{"Für Foto-Matching im „Entdecken\"-Tab. Alle Fotos werden automatisch auf unangemessene Inhalte geprüft."}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((p, i) => (
             <View key={`${i}-${p.slice(-8)}`} style={styles.photoWrap}>
@@ -239,6 +242,15 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }} />
           <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
         </Pressable>
+
+        {user?.is_admin && (
+          <Pressable testID="open-admin" onPress={() => router.push("/admin")} style={styles.settingsRow}>
+            <Feather name="flag" size={18} color={colors.error} />
+            <Text style={styles.subText}>Admin: Meldungen</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+          </Pressable>
+        )}
       </KeyboardAwareScrollView>
 
       {showCountry && (

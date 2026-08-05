@@ -17,6 +17,7 @@ export type User = {
   photos?: string[];
   tier?: string;
   tier_until?: string | null;
+  is_admin?: boolean;
 };
 
 export type DiscoverCard = {
@@ -101,6 +102,11 @@ export const api = {
   subscribe: (tier: string) =>
     req("/subscription", { method: "POST", body: JSON.stringify({ tier }) }, true),
   deleteAccount: () => req("/account", { method: "DELETE" }, true),
+  addPhoto: (photo: string) =>
+    req("/profile/photo", { method: "POST", body: JSON.stringify({ photo }) }, true),
+  adminReports: () => req("/admin/reports", { method: "GET" }, true),
+  adminResolve: (id: string, action: "dismiss" | "ban") =>
+    req(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ action }) }, true),
 };
 
 export function wsUrl(token: string) {

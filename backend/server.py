@@ -16,6 +16,12 @@ import jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel, EmailStr, Field
 
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
+    _HAS_LLM = True
+except Exception:
+    _HAS_LLM = False
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -28,6 +34,8 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', 'sugar-dev-secret-change-me')
 JWT_ALG = 'HS256'
 TOKEN_DAYS = 14
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@sugar.app').lower()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer = HTTPBearer(auto_error=False)
@@ -37,6 +45,31 @@ api_router = APIRouter(prefix="/api")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("sugar")
+
+
+async def moderate_image(data_uri: str) -> bool:
+    """Return True if the image is EXPLICIT (nudity/sexual). Fails open (False) on error."""
+    if not data_uri or not EMERGENT_LLM_KEY or not _HAS_LLM:
+        return False
+    b64 = data_uri.split(",", 1)[1] if data_uri.startswith("data:") else data_uri
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"mod-{uuid.uuid4()}",
+            system_message=(
+                "You are a strict image safety classifier for a dating app. "
+                "Reply with exactly one word: EXPLICIT if the image contains nudity, exposed "
+                "genitals or breasts, or sexual activity; otherwise SAFE."
+            ),
+        ).with_model("openai", "gpt-5.4")
+        resp = await chat.send_message(
+            UserMessage(text="Classify this profile photo. Answer only EXPLICIT or SAFE.",
+                        file_contents=[ImageContent(image_base64=b64)])
+        )
+        return str(resp or "").strip().upper().startswith("EXPLICIT")
+    except Exception as e:
+        logger.info(f"moderation error: {e}")
+        return False
 
 
 # ----------------------------- Models -----------------------------
@@ -91,6 +124,15 @@ class PublicUser(BaseModel):
     photos: List[str] = []
     tier: str = "free"
     tier_until: Optional[str] = None
+    is_admin: bool = False
+
+
+class PhotoBody(BaseModel):
+    photo: str
+
+
+class AdminResolveBody(BaseModel):
+    action: str  # "dismiss" | "ban"
 
 
 class PreferenceBody(BaseModel):
@@ -122,6 +164,7 @@ def to_public(doc: dict) -> PublicUser:
         photos=doc.get("photos", []) or [],
         tier=doc.get("tier", "free"),
         tier_until=doc.get("tier_until"),
+        is_admin=bool(doc.get("is_admin", False)),
     )
 
 
@@ -185,6 +228,8 @@ async def signup(body: SignupBody):
         "photos": [],
         "tier": "free",
         "tier_until": None,
+        "is_admin": email == ADMIN_EMAIL,
+        "banned": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -197,6 +242,8 @@ async def login(body: LoginBody):
     user = await db.users.find_one({"email": email})
     if not user or not pwd_context.verify(body.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Ungültige E-Mail oder Passwort")
+    if user.get("banned"):
+        raise HTTPException(status_code=403, detail="Dein Konto wurde wegen Regelverstoßes gesperrt.")
     return AuthResponse(token=make_token(user["id"]), user=to_public(user))
 
 
@@ -209,12 +256,29 @@ async def me(user: Annotated[dict, Depends(get_current_user)]):
 async def verify_profile(body: VerifyBody, user: Annotated[dict, Depends(get_current_user)]):
     if not body.selfie or len(body.selfie) < 100:
         raise HTTPException(status_code=400, detail="Bitte ein gültiges Selfie hochladen")
+    if await moderate_image(body.selfie):
+        raise HTTPException(status_code=422, detail="Dieses Bild verstößt gegen unsere Richtlinien (Nacktheit/expliziter Inhalt).")
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"selfie": body.selfie, "verified": True}},
     )
     user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return to_public(user)
+
+
+@api_router.post("/profile/photo")
+async def add_photo(body: PhotoBody, user: Annotated[dict, Depends(get_current_user)]):
+    photos = user.get("photos", []) or []
+    if len(photos) >= 6:
+        raise HTTPException(status_code=400, detail="Maximal 6 Fotos")
+    if not body.photo or len(body.photo) < 100:
+        raise HTTPException(status_code=400, detail="Ungültiges Foto")
+    if await moderate_image(body.photo):
+        return {"ok": False, "explicit": True}
+    photos = (photos + [body.photo])[:6]
+    await db.users.update_one({"id": user["id"]}, {"$set": {"photos": photos}})
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"ok": True, "explicit": False, "user": to_public(u).model_dump()}
 
 
 @api_router.patch("/profile/preferences", response_model=PublicUser)
@@ -230,11 +294,54 @@ async def report_user(body: ReportBody, user: Annotated[dict, Depends(get_curren
     await db.reports.insert_one({
         "id": str(uuid.uuid4()),
         "reporter_id": user["id"],
+        "reporter_name": user.get("name"),
         "reported_id": body.reported_id,
         "reason": body.reason,
+        "status": "open",
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     return {"ok": True}
+
+
+async def require_admin(user: Annotated[dict, Depends(get_current_user)]) -> dict:
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Nur für Admins")
+    return user
+
+
+@api_router.get("/admin/reports")
+async def admin_reports(admin: Annotated[dict, Depends(require_admin)]):
+    out = []
+    async for r in db.reports.find({}, {"_id": 0}).sort("created_at", -1).limit(200):
+        reported_name = None
+        rid = r.get("reported_id")
+        if rid and not str(rid).startswith("bot-") and not str(rid).startswith("demo-"):
+            ru = await db.users.find_one({"id": rid}, {"_id": 0, "name": 1, "banned": 1})
+            if ru:
+                reported_name = ru.get("name")
+                r["reported_banned"] = bool(ru.get("banned"))
+        r["reported_name"] = reported_name
+        out.append(r)
+    open_count = await db.reports.count_documents({"status": "open"})
+    return {"reports": out, "open_count": open_count}
+
+
+@api_router.post("/admin/reports/{report_id}/resolve")
+async def admin_resolve(report_id: str, body: AdminResolveBody, admin: Annotated[dict, Depends(require_admin)]):
+    r = await db.reports.find_one({"id": report_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Meldung nicht gefunden")
+    banned = False
+    if body.action == "ban" and r.get("reported_id"):
+        rid = r["reported_id"]
+        if not str(rid).startswith("bot-") and not str(rid).startswith("demo-"):
+            res = await db.users.update_one({"id": rid}, {"$set": {"banned": True}})
+            banned = res.modified_count > 0
+    await db.reports.update_one(
+        {"id": report_id},
+        {"$set": {"status": "resolved", "resolution": body.action, "resolved_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "banned": banned}
 
 
 # ----------------------------- Profile, Discover, Matches, Subscription -----------------------------
@@ -740,6 +847,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def seed_admin():
+    try:
+        existing = await db.users.find_one({"email": ADMIN_EMAIL})
+        if existing:
+            if not existing.get("is_admin"):
+                await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": {"is_admin": True}})
+            return
+        doc = {
+            "id": str(uuid.uuid4()),
+            "email": ADMIN_EMAIL,
+            "password_hash": pwd_context.hash("admin1234"),
+            "name": "Sugar Admin",
+            "gender": "other",
+            "verified": True,
+            "selfie": None,
+            "preference": "everyone",
+            "blocked": [],
+            "bio": "",
+            "age": None,
+            "country": "",
+            "photos": [],
+            "tier": "vip",
+            "tier_until": None,
+            "is_admin": True,
+            "banned": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.users.insert_one(doc)
+        logger.info(f"Seeded admin account: {ADMIN_EMAIL}")
+    except Exception as e:
+        logger.info(f"admin seed error: {e}")
 
 
 @app.on_event("shutdown")

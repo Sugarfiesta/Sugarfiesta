@@ -24,6 +24,7 @@ export default function SettingsScreen() {
       await api.deleteAccount().catch(() => {});
       // reset local data
       await storage.removeItem("sugar_eula_accepted");
+      await storage.removeItem("sugar_birthdate");
       await signOut();
       router.replace("/login");
     } finally {
@@ -55,6 +56,22 @@ export default function SettingsScreen() {
           <Text style={styles.body}>
             {"Im Live-Video kannst du jede Person über „Melden\" oder „Blockieren\" sofort trennen. Blockierte Personen werden dir nie wieder zugeordnet."}
           </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Rechtliches</Text>
+          <Pressable testID="link-terms" onPress={() => router.push("/legal/terms")} style={styles.linkRow}>
+            <Feather name="file-text" size={18} color={colors.onSurface} />
+            <Text style={styles.linkText}>Nutzungsbedingungen (AGB)</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+          </Pressable>
+          <Pressable testID="link-privacy" onPress={() => router.push("/legal/privacy")} style={styles.linkRow}>
+            <Feather name="lock" size={18} color={colors.onSurface} />
+            <Text style={styles.linkText}>Datenschutzerklärung</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+          </Pressable>
         </View>
 
         <View style={styles.dangerSection}>
@@ -94,6 +111,8 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   sectionTitle: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurface },
   body: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: colors.onSurfaceSecondary, lineHeight: 22 },
+  linkRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  linkText: { fontFamily: fonts.textMedium, fontSize: fontScale.lg, color: colors.onSurface },
   dangerSection: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.xl },
   dangerTitle: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.error },
   deleteBtn: {
