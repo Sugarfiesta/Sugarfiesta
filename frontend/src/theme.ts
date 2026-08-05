@@ -1,28 +1,40 @@
-// Sugar design tokens — luxurious white / crimson / rose theme.
+// Sugar design tokens — Candy / Kawaii aesthetic (glossy pastels, soft & sweet).
 export const colors = {
-  surface: "#FFFFFF",
-  onSurface: "#1F0A0E",
-  surfaceSecondary: "#FCF9FA",
-  onSurfaceSecondary: "#4A2A31",
-  surfaceTertiary: "#F5EEF0",
-  onSurfaceTertiary: "#69424B",
-  surfaceInverse: "#1F0A0E",
+  surface: "#FFF0F5", // cotton-candy blush
+  onSurface: "#4A2E3B", // deep berry — never pure black
+  surfaceSecondary: "#FFFFFF",
+  onSurfaceSecondary: "#6B4A57",
+  surfaceTertiary: "#FDE4EC",
+  onSurfaceTertiary: "#9B7180",
+  surfaceInverse: "#4A2E3B",
   onSurfaceInverse: "#FFFFFF",
-  brand: "#CC143C",
-  brandPrimary: "#CC143C",
+  brand: "#FF528A",
+  brandPrimary: "#FF528A", // candy magenta-pink
   onBrandPrimary: "#FFFFFF",
-  brandSecondary: "#E8436E",
-  onBrandSecondary: "#FFFFFF",
-  brandTertiary: "#FADEE3",
-  onBrandTertiary: "#8A0F2C",
-  success: "#128A4A",
-  onSuccess: "#FFFFFF",
-  warning: "#D97706",
-  error: "#B31222",
+  brandSecondary: "#98F5E1", // mint gummy
+  onBrandSecondary: "#0F5F52",
+  brandTertiary: "#D4C4FB", // lavender
+  onBrandTertiary: "#4A2E3B",
+  accentCyan: "#22D3EE",
+  accentLemon: "#FDF07B",
+  success: "#4ADE80",
+  onSuccess: "#0F5132",
+  warning: "#FBBF24",
+  onWarning: "#594802",
+  error: "#FF6B81",
   onError: "#FFFFFF",
-  border: "#EBE3E5",
-  borderStrong: "#D6C5C8",
-  divider: "#F0E8EA",
+  border: "rgba(255,105,180,0.18)",
+  borderStrong: "rgba(255,255,255,0.7)",
+  divider: "rgba(255,105,180,0.12)",
+};
+
+// Candy gradient recipes.
+export const gradients = {
+  marshmallow: ["#FFF0F5", "#E6F7FA"] as const, // melting-ice-cream background
+  cottonCandy: ["#FFD6E8", "#D4C4FB"] as const, // pink -> lavender
+  mintLemon: ["#98F5E1", "#FDF07B"] as const,
+  glossHighlight: ["rgba(255,255,255,0.65)", "rgba(255,255,255,0)"] as const,
+  rainbowRing: ["#FF528A", "#FDF07B", "#98F5E1", "#D4C4FB", "#FF528A"] as const,
 };
 
 export const spacing = {
@@ -36,18 +48,19 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 8,
-  md: 16,
-  lg: 24,
+  sm: 12,
+  md: 20,
+  lg: 28,
   pill: 999,
 };
 
 export const fonts = {
-  displayRegular: "PlayfairDisplay-Regular",
-  displayBold: "PlayfairDisplay-Bold",
-  textRegular: "DMSans-Regular",
-  textMedium: "DMSans-Medium",
-  textBold: "DMSans-Bold",
+  displayRegular: "Fredoka-Medium",
+  displaySemiBold: "Fredoka-SemiBold",
+  displayBold: "Fredoka-Bold",
+  textRegular: "Nunito-Regular",
+  textMedium: "Nunito-SemiBold",
+  textBold: "Nunito-Bold",
 };
 
 export const fontScale = {
@@ -60,9 +73,20 @@ export const fontScale = {
   display: 44,
 };
 
-// Gender-individualized accent: rose for female, crimson otherwise.
+// Colored, glossy candy shadow for gummy buttons / cards.
+export function candyShadow(color: string = colors.brandPrimary) {
+  return {
+    shadowColor: color,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  };
+}
+
+// Gender-individualized accent: mint for female, pink otherwise.
 export function accentFor(gender?: string) {
-  return gender === "female" ? colors.brandSecondary : colors.brandPrimary;
+  return gender === "female" ? colors.brandPrimary : colors.brandTertiary;
 }
 
 export const IMAGES = {

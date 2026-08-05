@@ -82,3 +82,19 @@ Build "Sugar", a mobile random live-video dating app (Chatroulette/Omegle vibe, 
 1. Integrate real WebRTC once user deploys and generates a native build.
 2. Add report/block + text chat on the stage.
 3. Add preference-based matching (who you want to meet).
+
+## Update 6 — Candy / Kawaii Visual Redesign (shipped, agent-verified)
+Full visual restyle to a glossy pastel "candy" aesthetic (logic unchanged).
+- Theme (`src/theme.ts`): candy palette (cotton-candy pink #FF528A, mint #98F5E1, lavender #D4C4FB, lemon #FDF07B, deep-berry text #4A2E3B), `gradients` recipes, `candyShadow()`. Radius softened (sm12/md20/lg28).
+- Fonts (`src/hooks/use-app-fonts.ts`): Fredoka (display) + Nunito (body) via fontsource CDN; theme font keys remapped so all screens update automatically.
+- New reusable components in `src/components/`:
+  - `CandyLogo.tsx` — react-native-svg candy-cane striped heart + "Sugar" icing wordmark.
+  - `LollipopLoader.tsx` — reanimated spinning SVG lollipop spinner.
+  - `GummyButton.tsx` — glossy neumorphic candy CTA (gradient gloss overlay + colored shadow).
+  - `RainbowAvatar.tsx` — LinearGradient rainbow ring around avatar/photo.
+  - `CandyBackground.tsx` — marshmallow-melt gradient.
+- Installed `react-native-svg`.
+- Applied to: `_layout.tsx` (surface bg), `index.tsx` (lollipop loader), `login.tsx` (candy bg + logo + gummy CTA), `EulaGate.tsx` (light candy gate + logo), `(tabs)/profile.tsx` (rainbow avatar + gummy save). All other screens inherit the new palette/fonts automatically.
+- Also completed earlier update-5 request: profile Religion/Hobby/Job fields + Skip, story viewer modal, Impressum screen + Settings link, age keyboard-dismiss.
+- Verified: lint clean; screenshots of EULA gate, login, discover, profile all render the candy theme correctly.
+

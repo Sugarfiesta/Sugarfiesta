@@ -11,6 +11,7 @@ import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { useAppFonts } from "@/src/hooks/use-app-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { EulaGate } from "@/src/components/EulaGate";
+import { colors } from "@/src/theme";
 
 // Disable logbox errors etc so that users can see the app
 // and agent works as expected.
@@ -47,7 +48,7 @@ export default function RootLayout() {
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: "#FFFFFF" },
+                contentStyle: { backgroundColor: colors.surface },
                 animation: "fade",
               }}
             />

@@ -1,7 +1,9 @@
 import { Redirect } from "expo-router";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useAuth } from "@/src/context/AuthContext";
 import { colors } from "@/src/theme";
+import { CandyBackground } from "@/src/components/CandyBackground";
+import { LollipopLoader } from "@/src/components/LollipopLoader";
 
 export default function Index() {
   const { loading, token, user } = useAuth();
@@ -9,7 +11,8 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.container} testID="boot-loading">
-        <ActivityIndicator size="large" color={colors.brandPrimary} />
+        <CandyBackground />
+        <LollipopLoader size={64} />
       </View>
     );
   }

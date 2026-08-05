@@ -5,19 +5,19 @@ import {
   StyleSheet,
   TextInput,
   Pressable,
-  ActivityIndicator,
 } from "react-native";
-import { Image } from "expo-image";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { colors, spacing, radius, fonts, fontScale, IMAGES } from "@/src/theme";
+import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
 import { useAuth } from "@/src/context/AuthContext";
+import { CandyBackground } from "@/src/components/CandyBackground";
+import { CandyLogo } from "@/src/components/CandyLogo";
+import { GummyButton } from "@/src/components/GummyButton";
 
 const GENDERS = [
   { key: "female", label: "Frau" },
@@ -62,11 +62,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <Image source={{ uri: IMAGES.authHero }} style={StyleSheet.absoluteFill} contentFit="cover" />
-      <LinearGradient
-        colors={["rgba(31,10,14,0.15)", "rgba(31,10,14,0.55)"]}
-        style={StyleSheet.absoluteFill}
-      />
+      <CandyBackground />
 
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
@@ -79,11 +75,11 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.brandWrap}>
-          <Text style={styles.brand} testID="app-logo">Sugar</Text>
+          <CandyLogo size={104} />
           <Text style={styles.tagline}>Finde deinen süßen Moment</Text>
         </View>
 
-        <BlurView intensity={40} tint="light" style={styles.card}>
+        <BlurView intensity={30} tint="light" style={styles.card}>
           <View style={styles.cardInner}>
             <Text style={styles.cardTitle}>
               {mode === "login" ? "Willkommen zurück" : "Erstelle dein Profil"}
@@ -159,24 +155,13 @@ export default function LoginScreen() {
               </View>
             )}
 
-            <Pressable
+            <GummyButton
               testID="auth-submit-button"
+              label={mode === "login" ? "Einloggen" : "Weiter"}
               onPress={submit}
-              disabled={loading}
-              style={({ pressed }) => [
-                styles.cta,
-                pressed && { transform: [{ scale: 0.98 }] },
-                loading && { opacity: 0.7 },
-              ]}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.onBrandPrimary} />
-              ) : (
-                <Text style={styles.ctaText}>
-                  {mode === "login" ? "Einloggen" : "Weiter"}
-                </Text>
-              )}
-            </Pressable>
+              loading={loading}
+              style={{ marginTop: spacing.sm }}
+            />
 
             <Pressable
               testID="toggle-auth-mode"
@@ -201,29 +186,23 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.surfaceInverse },
+  root: { flex: 1, backgroundColor: colors.surface },
   scroll: { flexGrow: 1, justifyContent: "center", paddingHorizontal: spacing.xl },
   brandWrap: { alignItems: "center", marginBottom: spacing.xl },
-  brand: {
-    fontFamily: fonts.displayBold,
-    fontSize: 56,
-    color: colors.onSurfaceInverse,
-    letterSpacing: 0.5,
-  },
   tagline: {
     fontFamily: fonts.textMedium,
     fontSize: fontScale.lg,
-    color: "rgba(255,255,255,0.85)",
+    color: colors.onSurfaceSecondary,
     marginTop: spacing.xs,
   },
   card: {
     borderRadius: radius.lg,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
   },
   cardInner: {
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(255,255,255,0.82)",
     padding: spacing.xl,
     gap: spacing.md,
   },
@@ -276,26 +255,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    backgroundColor: "rgba(179,18,34,0.08)",
+    backgroundColor: "rgba(255,107,129,0.12)",
     borderRadius: radius.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   errorText: { fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: colors.error, flex: 1 },
-  cta: {
-    height: 56,
-    borderRadius: radius.pill,
-    backgroundColor: colors.brandPrimary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: spacing.sm,
-  },
-  ctaText: {
-    fontFamily: fonts.textBold,
-    fontSize: fontScale.lg,
-    color: colors.onBrandPrimary,
-    letterSpacing: 0.3,
-  },
   toggle: { alignItems: "center", paddingVertical: spacing.sm },
   toggleText: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: colors.onSurfaceSecondary },
   toggleLink: { fontFamily: fonts.textBold, color: colors.brandPrimary },

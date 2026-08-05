@@ -21,6 +21,8 @@ import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
 import { COUNTRIES, countryLabel, tierName, TIER_COLORS } from "@/src/constants";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api";
+import { RainbowAvatar } from "@/src/components/RainbowAvatar";
+import { GummyButton } from "@/src/components/GummyButton";
 
 const PREFS = [
   { key: "female", label: "Frauen" },
@@ -182,13 +184,7 @@ export default function ProfileScreen() {
 
         {/* Identity */}
         <View style={styles.identity}>
-          <View style={styles.bigAvatar}>
-            {photos[0] ? (
-              <Image source={{ uri: photos[0] }} style={styles.bigAvatarImg} contentFit="cover" />
-            ) : (
-              <Text style={styles.bigAvatarText}>{(name || "S").charAt(0).toUpperCase()}</Text>
-            )}
-          </View>
+          <RainbowAvatar uri={photos[0]} size={104} fallback={name || "S"} />
           <View style={styles.badgesRow}>
             {user?.verified && (
               <View style={styles.verifiedBadge}>
@@ -313,9 +309,7 @@ export default function ProfileScreen() {
           })}
         </View>
 
-        <Pressable testID="save-profile" onPress={saveProfile} disabled={saving} style={({ pressed }) => [styles.saveBtn, pressed && { transform: [{ scale: 0.98 }] }, saving && { opacity: 0.7 }]}>
-          {saving ? <ActivityIndicator color={colors.onBrandPrimary} /> : <Text style={styles.saveText}>Profil speichern</Text>}
-        </Pressable>
+        <GummyButton testID="save-profile" label="Profil speichern" onPress={saveProfile} loading={saving} style={{ marginTop: spacing.md }} />
 
         <Pressable testID="manage-subscription" onPress={() => router.push("/subscribe")} style={styles.subRow}>
           <Feather name="star" size={18} color={colors.brandPrimary} />

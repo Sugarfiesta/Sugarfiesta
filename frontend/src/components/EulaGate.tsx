@@ -6,7 +6,8 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { storage } from "@/src/utils/storage";
-import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
+import { colors, spacing, radius, fonts, fontScale, gradients } from "@/src/theme";
+import { CandyLogo } from "@/src/components/CandyLogo";
 
 const EULA_KEY = "sugar_eula_accepted";
 const DOB_KEY = "sugar_birthdate";
@@ -70,9 +71,11 @@ export function EulaGate() {
 
   return (
     <View style={styles.overlay} testID="eula-gate">
-      <LinearGradient colors={[colors.surfaceInverse, "#3A121C"]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={gradients.cottonCandy} style={StyleSheet.absoluteFill} />
       <View style={[styles.content, { paddingTop: insets.top + spacing["2xl"], paddingBottom: insets.bottom + spacing.xl }]}>
-        <Text style={styles.brand}>Sugar</Text>
+        <View style={styles.logoRow}>
+          <CandyLogo size={72} />
+        </View>
 
         {status === "rules" ? (
           <>
@@ -83,7 +86,7 @@ export function EulaGate() {
               </Text>
               {RULES.map((r) => (
                 <View key={r} style={styles.ruleRow}>
-                  <Feather name="shield" size={16} color={colors.brandSecondary} />
+                  <Feather name="shield" size={16} color={colors.brandPrimary} />
                   <Text style={styles.ruleText}>{r}</Text>
                 </View>
               ))}
@@ -107,25 +110,25 @@ export function EulaGate() {
             <Text style={styles.title}>Bestätige dein Alter</Text>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.ageBody}>
-              <Feather name="calendar" size={40} color={colors.brandSecondary} />
+              <Feather name="calendar" size={40} color={colors.brandPrimary} />
               <Text style={styles.ageLead}>Sugar ist nur für Erwachsene. Bitte gib dein Geburtsdatum ein.</Text>
               <View style={styles.dobRow}>
                 <View style={styles.dobField}>
                   <Text style={styles.dobLabel}>Tag</Text>
-                  <TextInput testID="dob-day" style={styles.dobInput} placeholder="TT" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={2} value={day} onChangeText={(t) => setDay(t.replace(/[^0-9]/g, ""))} />
+                  <TextInput testID="dob-day" style={styles.dobInput} placeholder="TT" placeholderTextColor={colors.onSurfaceTertiary} keyboardType="number-pad" returnKeyType="done" maxLength={2} value={day} onChangeText={(t) => setDay(t.replace(/[^0-9]/g, ""))} />
                 </View>
                 <View style={styles.dobField}>
                   <Text style={styles.dobLabel}>Monat</Text>
-                  <TextInput testID="dob-month" style={styles.dobInput} placeholder="MM" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={2} value={month} onChangeText={(t) => setMonth(t.replace(/[^0-9]/g, ""))} />
+                  <TextInput testID="dob-month" style={styles.dobInput} placeholder="MM" placeholderTextColor={colors.onSurfaceTertiary} keyboardType="number-pad" returnKeyType="done" maxLength={2} value={month} onChangeText={(t) => setMonth(t.replace(/[^0-9]/g, ""))} />
                 </View>
                 <View style={[styles.dobField, { flex: 1.4 }]}>
                   <Text style={styles.dobLabel}>Jahr</Text>
-                  <TextInput testID="dob-year" style={styles.dobInput} placeholder="JJJJ" placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" returnKeyType="done" maxLength={4} value={year} onChangeText={(t) => setYear(t.replace(/[^0-9]/g, ""))} onSubmitEditing={() => Keyboard.dismiss()} blurOnSubmit />
+                  <TextInput testID="dob-year" style={styles.dobInput} placeholder="JJJJ" placeholderTextColor={colors.onSurfaceTertiary} keyboardType="number-pad" returnKeyType="done" maxLength={4} value={year} onChangeText={(t) => setYear(t.replace(/[^0-9]/g, ""))} onSubmitEditing={() => Keyboard.dismiss()} blurOnSubmit />
                 </View>
               </View>
               {ageError && (
                 <View style={styles.ageErrorBox} testID="dob-error">
-                  <Feather name="alert-triangle" size={14} color="#FFD1D8" />
+                  <Feather name="alert-triangle" size={14} color={colors.error} />
                   <Text style={styles.ageErrorText}>{ageError}</Text>
                 </View>
               )}
@@ -148,21 +151,21 @@ export function EulaGate() {
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, zIndex: 9999 },
   content: { flex: 1, paddingHorizontal: spacing.xl },
-  brand: { fontFamily: fonts.displayBold, fontSize: 40, color: colors.onSurfaceInverse },
-  title: { fontFamily: fonts.textBold, fontSize: fontScale.xl, color: "rgba(255,255,255,0.9)", marginTop: spacing.xs, marginBottom: spacing.lg },
+  logoRow: { alignItems: "flex-start" },
+  title: { fontFamily: fonts.displayBold, fontSize: fontScale.xl, color: colors.onSurface, marginTop: spacing.xs, marginBottom: spacing.lg },
   card: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.75)",
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
   },
   cardInner: { padding: spacing.lg, gap: spacing.md },
-  lead: { fontFamily: fonts.textRegular, fontSize: fontScale.lg, color: colors.onSurfaceInverse, lineHeight: 24 },
+  lead: { fontFamily: fonts.textRegular, fontSize: fontScale.lg, color: colors.onSurface, lineHeight: 24 },
   ruleRow: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm },
-  ruleText: { flex: 1, fontFamily: fonts.textMedium, fontSize: fontScale.base, color: "rgba(255,255,255,0.9)", lineHeight: 22 },
-  consent: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.onSurfaceInverse, lineHeight: 22, marginTop: spacing.sm },
-  policy: { fontFamily: fonts.textRegular, fontSize: fontScale.sm, color: "rgba(255,255,255,0.7)", lineHeight: 20 },
+  ruleText: { flex: 1, fontFamily: fonts.textMedium, fontSize: fontScale.base, color: colors.onSurface, lineHeight: 22 },
+  consent: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.onSurface, lineHeight: 22, marginTop: spacing.sm },
+  policy: { fontFamily: fonts.textRegular, fontSize: fontScale.sm, color: colors.onSurfaceSecondary, lineHeight: 20 },
   cta: {
     height: 56,
     borderRadius: radius.pill,
@@ -173,21 +176,21 @@ const styles = StyleSheet.create({
   },
   ctaText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onBrandPrimary, letterSpacing: 0.3 },
   ageBody: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.lg, paddingHorizontal: spacing.sm },
-  ageLead: { fontFamily: fonts.textRegular, fontSize: fontScale.lg, color: colors.onSurfaceInverse, textAlign: "center", lineHeight: 24 },
+  ageLead: { fontFamily: fonts.textRegular, fontSize: fontScale.lg, color: colors.onSurface, textAlign: "center", lineHeight: 24 },
   dobRow: { flexDirection: "row", gap: spacing.md, width: "100%" },
   dobField: { flex: 1, gap: spacing.xs },
-  dobLabel: { fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: "rgba(255,255,255,0.7)", textAlign: "center" },
+  dobLabel: { fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: colors.onSurfaceSecondary, textAlign: "center" },
   dobInput: {
     height: 60,
     borderRadius: radius.md,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: colors.surfaceSecondary,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     fontFamily: fonts.textBold,
     fontSize: fontScale.xl,
-    color: colors.onSurfaceInverse,
+    color: colors.onSurface,
     textAlign: "center",
   },
-  ageErrorBox: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: "rgba(179,18,34,0.25)", borderRadius: radius.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  ageErrorText: { flex: 1, fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: "#FFD1D8" },
+  ageErrorBox: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: "rgba(255,107,129,0.18)", borderRadius: radius.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  ageErrorText: { flex: 1, fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: colors.error },
 });
