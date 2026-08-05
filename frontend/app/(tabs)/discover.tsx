@@ -211,7 +211,7 @@ export default function DiscoverScreen() {
                 );
               }
               return (
-                <Animated.View key={card.id} style={[styles.card, staticStyle]} pointerEvents="none">
+                <Animated.View key={card.id} style={[styles.card, staticStyle, { pointerEvents: "none" }]}>
                   {inner}
                 </Animated.View>
               );

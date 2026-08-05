@@ -60,6 +60,14 @@ Build "Sugar", a mobile random live-video dating app (Chatroulette/Omegle vibe, 
 - Permission-Strings (app.json): NSCamera/NSMicrophone + expo-camera Plugin mit exaktem Text „Sugar benötigt Zugriff auf deine Kamera und dein Mikrofon…". [done]
 - Verifiziert: DELETE /api/account (200, User weg, Login danach 401); EULA erscheint beim ersten Start und schaltet nach Zustimmung frei.
 
+## Implemented (2026-06, update 5 — Store-Compliance II)
+- 18+ Alters-Gate: nach EULA-Zustimmung Geburtsdatum-Abfrage (TT/MM/JJJJ) im EulaGate; unter 18 wird blockiert; lokal gespeichert ("sugar_birthdate"). [done]
+- Foto-Moderation: POST /api/profile/photo prüft jedes neue Foto per Vision-LLM (Emergent-Key, openai gpt-5.4) auf Nacktheit/expliziten Inhalt; abgelehnte Fotos werden nicht gespeichert. /profile/verify lehnt explizite Selfies ab (422). [done]
+- Admin-Meldungen: is_admin-Flag + Auto-Seed admin@sugar.app/admin1234; /admin-Screen (aus Profil) listet Reports; GET /api/admin/reports, POST /api/admin/reports/{id}/resolve {dismiss|ban}; Ban setzt user.banned → Login 403. Nicht-Admins erhalten 403. [done]
+- Rechtstexte: /legal/terms (AGB) & /legal/privacy (Datenschutz) als eigene Seiten, verlinkt aus Settings. [done]
+- Report blockiert jetzt zusätzlich; Melden beendet Call + dauerhaftes Ignorieren.
+- Getestet: 9/9 neue Safety-Tests + 15/15 Feature-Tests bestanden; Age-Gate & Admin-Ban UI/Backend verifiziert; keine Regressionen.
+
 ## Backlog (prioritized)
 ### P0
 - Real WebRTC video (react-native-webrtc) — requires deploy + native build; wire signaling over existing WebSocket.
