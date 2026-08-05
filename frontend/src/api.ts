@@ -11,6 +11,33 @@ export type User = {
   verified: boolean;
   has_selfie?: boolean;
   preference?: string;
+  bio?: string;
+  age?: number | null;
+  country?: string;
+  photos?: string[];
+  tier?: string;
+  tier_until?: string | null;
+};
+
+export type DiscoverCard = {
+  id: string;
+  name: string;
+  age?: number | null;
+  gender: string;
+  country: string;
+  bio: string;
+  photo?: string | null;
+  is_demo: boolean;
+  verified: boolean;
+};
+
+export type MatchView = {
+  id: string;
+  partner: { id: string; name: string; photo?: string | null; gender: string; verified: boolean };
+  is_demo: boolean;
+  last_text?: string | null;
+  last_at?: string | null;
+  created_at?: string | null;
 };
 
 async function req(path: string, options: RequestInit = {}, auth = false) {
@@ -55,6 +82,24 @@ export const api = {
     req("/profile/preferences", { method: "PATCH", body: JSON.stringify({ preference }) }, true),
   report: (reported_id: string | null, reason: string) =>
     req("/report", { method: "POST", body: JSON.stringify({ reported_id, reason }) }, true),
+  updateProfile: (data: {
+    name?: string;
+    bio?: string;
+    age?: number | null;
+    country?: string;
+    photos?: string[];
+  }) => req("/profile", { method: "PATCH", body: JSON.stringify(data) }, true),
+  discover: (country?: string) =>
+    req(`/discover${country ? `?country=${encodeURIComponent(country)}` : ""}`, { method: "GET" }, true),
+  swipe: (target_id: string, action: "like" | "pass" | "heart") =>
+    req("/swipe", { method: "POST", body: JSON.stringify({ target_id, action }) }, true),
+  matches: () => req("/matches", { method: "GET" }, true),
+  matchDetail: (id: string) => req(`/matches/${id}`, { method: "GET" }, true),
+  sendMatchMessage: (id: string, text: string) =>
+    req(`/matches/${id}/messages`, { method: "POST", body: JSON.stringify({ text }) }, true),
+  getSubscription: () => req("/subscription", { method: "GET" }, true),
+  subscribe: (tier: string) =>
+    req("/subscription", { method: "POST", body: JSON.stringify({ tier }) }, true),
 };
 
 export function wsUrl(token: string) {

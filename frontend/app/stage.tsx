@@ -104,6 +104,10 @@ export default function StageScreen() {
             ...m,
             { id: `${Date.now()}-${Math.random()}`, text: msg.text, mine: false },
           ]);
+        } else if (msg.type === "paywall") {
+          closingRef.current = true;
+          wsRef.current?.close();
+          router.replace("/subscribe");
         }
       } catch {
         /* ignore malformed */
@@ -115,7 +119,7 @@ export default function StageScreen() {
     ws.onclose = () => {
       if (!closingRef.current) setStatus("error");
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     connect();

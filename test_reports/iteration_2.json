@@ -1,0 +1,46 @@
+{
+  "summary": "Second iteration testing after major feature expansion (Discover swipe deck, Match overlay + Match-Historie DM chat, 4-tier mock subscription, paywall gating, country filter for gold+, camera-only verification). Backend: 15/15 new pytest cases pass in /app/backend/tests/test_features.py (subscription tiers & prices 0/4.99/7.99/15.99, subscribe+persist, discover cards with correct preference filtering, gold country filter, swipe like/heart auto-match on demo profiles, pass no-match, invalid action 400, matches list + DM with demo bot reply, match_detail 404, empty message 400, WebSocket paywall on free tier find, WebSocket accepts find for plus+, PATCH /profile fields). Previous iteration_1 suite (12 tests) also still passes. Frontend: Login as lisa@sugar.app -> Entdecken tab renders top-card correctly. Swipe like on demo profile (Luca) triggers the 'Es ist ein Match!' overlay with partner name + photo + 'Nachricht senden' / 'Weiter entdecken' buttons - both work. Country filter (as free tier) correctly routes to /subscribe. /subscribe screen lists all 4 tiers (free='Kostenlos', Sugar Plus 4,99 €, Sugar Gold 7,99 €, Sugar VIP 15,99 €) with 'Auswählen' buttons; selecting Gold upgrades and returns to Discover. Video tab as Gold shows 'Start Dating' without lock (paywall gone); as Free tapping 'Start Dating' correctly routes to /subscribe. Matches tab lists mutual matches with photo/name/preview and taps open /chat/[id]; sending a DM via /api/matches/{id}/messages shows the sent bubble AND a demo bot reply appears. Profile tab shows tier badge (Sugar Gold), photo grid, editable name/bio/age (28), country picker modal picks DE (Deutschland), preference pills (Frauen/Männer/Alle) work, save writes changes (verified by re-entering the screen). Verification screen is camera-only in UI (only pickImage(true) is wired to a button and label reads 'Nur ein echtes Live-Selfie mit der Kamera – kein Galerie-Upload'). No red screen. No deprecated Expo packages (expo-av, expo-barcode-scanner, expo-background-fetch) detected. Only nits: one console warning 'props.pointerEvents is deprecated. Use style.pointerEvents' from a legacy usage (likely from RN itself or a helper). Deprecated packages detected: none.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "subscribe", "issues": ["'Aktueller Plan' button and free tier price are shown as text 'Kostenlos' - matches spec but note the '0€' literal is not shown (design choice)."]},
+      {"screen": "profile", "issues": ["profile-toast disappears very quickly (<1s in tests). Consider extending visible duration to ~1.8-2s for accessibility and confirmation."]}
+    ],
+    "react_native_issues": [
+      {"component": "props.pointerEvents (any component using pointerEvents prop)", "issue": "Console warning: 'props.pointerEvents is deprecated. Use style.pointerEvents'. Move pointerEvents from a JSX prop into the style object. Likely in /app/frontend/app/(tabs)/profile.tsx:264 which sets `pointerEvents=\"none\"` as prop on the toast <View>. Migrate to `style={[..., { pointerEvents: 'none' }]}`."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_features.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/pytest_features.xml"
+  ],
+  "action_items": [
+    "Small: migrate `pointerEvents=\"none\"` JSX prop to style.pointerEvents in profile.tsx (toast <View>) to silence the deprecation warning on RN >=0.79.",
+    "Optional UX: increase profile save toast visibility duration (currently very short).",
+    "Reminder from iteration_1 (still open if not fixed): after signOut() from /(tabs)/profile the app clears token but has no explicit redirect - relies on the TabsLayout `if (!token) return <Redirect href='/login'/>` guard which does work here (verified by tabs layout code). This iteration's flows didn't re-hit the strand issue since profile is inside (tabs). Consider deleting the older iteration_1 action item if lobby.tsx is no longer routed."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 733 lines - just above the 700-line soft threshold. Consider splitting into modules: auth.py, profile.py, discover.py, matches.py, subscription.py, ws.py. All logic is fine but future maintainability will benefit.",
+    "server.py MatchManager state is in-process only; horizontal scaling will break WebSocket matching. Fine for MVP; flag for later.",
+    "verify.tsx still imports ImagePicker.launchImageLibraryAsync but no UI path triggers it (dead code). Safe to remove the else branch and drop the media-library permission request entirely to reduce Android permissions footprint.",
+    "discover.tsx uses random.shuffle on the backend result each request - fine for demo but not stable across pagination (there is no pagination yet, so OK).",
+    "No pagination on /matches or /discover - fine at MVP scale, revisit when users >100.",
+    "chat/[id].tsx does not poll for new messages after the DM auto-reply beyond the immediate POST response. Since demo replies come in the POST response body this is OK, but for real users you'd want WebSocket or long-poll."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_features.py (new)"
+  ],
+  "success_rate": {"backend": "100% (27/27 across both test files)", "frontend": "100% of exercised flows (auth, discover swipe & match overlay, subscribe 4 tiers, country-filter gating free vs gold, video paywall free vs gold Start Dating, matches list, DM chat + demo reply, profile edit/save, country picker, preference pills, verify screen camera-only UI)"},
+  "seed_data_creation": "Test users created by pytest test_features.py (test.feat.*, test.sub.*, test.swipe.*, test.heart.*, etc). Lisa (lisa@sugar.app) subscription was temporarily upgraded to Gold during UI test and reset to Free at the end.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Two pytest files now cover the full backend: /app/backend/tests/backend_test.py (auth + verify + WS matching, 12 tests) and /app/backend/tests/test_features.py (subscription/discover/swipe/matches/DM/paywall/profile, 15 tests). Run: `python -m pytest /app/backend/tests -v`. For the UI, log in as lisa@sugar.app / secret123, then: (1) swipe like/heart on any demo-* card in Entdecken -> match overlay must render; (2) upgrade to plus/gold/vip on /subscribe -> Video tab 'Start Dating' unlocks and country filter modal opens (gold+); (3) DM: Matches -> tap row -> type -> send -> demo bot replies. All React Native components use Text/View/Pressable correctly; testIDs are present on all interactive elements. Only nit left: the pointerEvents JSX-prop deprecation warning in profile toast.",
+  "rca_of_issue": "N/A - no bugs found in this iteration. Only a minor RN 0.79+ deprecation warning about `pointerEvents` as JSX prop; migrating to `style.pointerEvents` silences it."
+}

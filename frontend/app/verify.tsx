@@ -84,7 +84,7 @@ export default function VerifyScreen() {
       const updated = await api.verify(selfie);
       setUser(updated);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/lobby");
+      router.replace("/(tabs)/discover");
     } catch (e: any) {
       setError(e?.message || "Verifizierung fehlgeschlagen.");
     } finally {
@@ -142,10 +142,9 @@ export default function VerifyScreen() {
         )}
 
         {!selfie && (
-          <Pressable testID="pick-from-gallery" onPress={() => pickImage(false)} style={styles.retake}>
-            <Feather name="image" size={14} color={colors.brandPrimary} />
-            <Text style={styles.retakeText}>Aus Galerie wählen</Text>
-          </Pressable>
+          <Text style={styles.cameraHint}>
+            Nur ein echtes Live-Selfie mit der Kamera – kein Galerie-Upload.
+          </Text>
         )}
 
         {error && (
@@ -262,6 +261,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   retakeText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.brandPrimary },
+  cameraHint: {
+    fontFamily: fonts.textRegular,
+    fontSize: fontScale.sm,
+    color: colors.onSurfaceTertiary,
+    textAlign: "center",
+    marginTop: spacing.lg,
+  },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",

@@ -56,6 +56,27 @@ class VerifyBody(BaseModel):
     selfie: str  # base64 data URI
 
 
+class ProfileBody(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    age: Optional[int] = None
+    country: Optional[str] = None
+    photos: Optional[List[str]] = None
+
+
+class SwipeBody(BaseModel):
+    target_id: str
+    action: str  # "like" | "pass" | "heart"
+
+
+class MessageBody(BaseModel):
+    text: str
+
+
+class SubscribeBody(BaseModel):
+    tier: str  # "free" | "plus" | "gold" | "vip"
+
+
 class PublicUser(BaseModel):
     id: str
     email: EmailStr
@@ -64,6 +85,12 @@ class PublicUser(BaseModel):
     verified: bool
     has_selfie: bool = False
     preference: str = "everyone"
+    bio: str = ""
+    age: Optional[int] = None
+    country: str = ""
+    photos: List[str] = []
+    tier: str = "free"
+    tier_until: Optional[str] = None
 
 
 class PreferenceBody(BaseModel):
@@ -89,6 +116,12 @@ def to_public(doc: dict) -> PublicUser:
         verified=bool(doc.get("verified", False)),
         has_selfie=bool(doc.get("selfie")),
         preference=doc.get("preference", "everyone"),
+        bio=doc.get("bio", "") or "",
+        age=doc.get("age"),
+        country=doc.get("country", "") or "",
+        photos=doc.get("photos", []) or [],
+        tier=doc.get("tier", "free"),
+        tier_until=doc.get("tier_until"),
     )
 
 
@@ -146,6 +179,12 @@ async def signup(body: SignupBody):
         "selfie": None,
         "preference": "everyone",
         "blocked": [],
+        "bio": "",
+        "age": None,
+        "country": "",
+        "photos": [],
+        "tier": "free",
+        "tier_until": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
@@ -196,6 +235,241 @@ async def report_user(body: ReportBody, user: Annotated[dict, Depends(get_curren
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     return {"ok": True}
+
+
+# ----------------------------- Profile, Discover, Matches, Subscription -----------------------------
+TIERS = [
+    {"id": "free", "name": "Free", "price": 0.0,
+     "tagline": "Zum Reinschnuppern",
+     "features": ["Foto-Matching (Entdecken)", "Chat mit deinen Matches", "Basis-Profil"]},
+    {"id": "plus", "name": "Sugar Plus", "price": 4.99,
+     "tagline": "Für ernsthafte Dates",
+     "features": ["Alles aus Free", "Live-Video-Dating 🎥", "Unbegrenzte Likes", "Vorschau: Wer mag dich"]},
+    {"id": "gold", "name": "Sugar Gold", "price": 7.99,
+     "tagline": "Beliebteste Wahl",
+     "features": ["Alles aus Plus", "Länder-Filter 🌍", "Sieh wer dich mag", "5 Super-Herzen pro Tag", "Wöchentlicher Profil-Boost"]},
+    {"id": "vip", "name": "Sugar VIP", "price": 15.99,
+     "tagline": "Das volle Erlebnis",
+     "features": ["Alles aus Gold", "Priorisiertes Matching", "Unbegrenzte Herzen 💘", "Inkognito-Modus", "Verifizierter VIP-Badge", "Keine Wartezeit in der Video-Queue"]},
+]
+TIER_RANK = {"free": 0, "plus": 1, "gold": 2, "vip": 3}
+
+DEMO_PROFILES = [
+    {"id": "demo-1", "name": "Elena", "age": 26, "gender": "female", "country": "DE", "bio": "Kaffee, Kunst & spontane Roadtrips.", "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-2", "name": "Marco", "age": 29, "gender": "male", "country": "IT", "bio": "Koche gerne Pasta. Suche echte Gespräche.", "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-3", "name": "Sofia", "age": 24, "gender": "female", "country": "ES", "bio": "Salsa-Tänzerin & Sonnenuntergangsjägerin.", "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-4", "name": "Luca", "age": 31, "gender": "male", "country": "CH", "bio": "Berge am Wochenende, Jazz am Abend.", "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-5", "name": "Amara", "age": 27, "gender": "female", "country": "FR", "bio": "Fotografin. Zeig mir deine Lieblingsecke.", "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-6", "name": "Noah", "age": 28, "gender": "male", "country": "AT", "bio": "Hunde-Papa & Hobbybäcker 🥐", "photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-7", "name": "Valentina", "age": 25, "gender": "female", "country": "DE", "bio": "Yoga, Bücher & Rotwein.", "photo": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-8", "name": "Leon", "age": 30, "gender": "male", "country": "DE", "bio": "Startup-Gründer. Spontane Reisen? Immer.", "photo": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&q=80&auto=format&fit=crop"},
+]
+
+
+def _demo_by_id(did: str) -> Optional[dict]:
+    return next((d for d in DEMO_PROFILES if d["id"] == did), None)
+
+
+def _card_from_demo(d: dict) -> dict:
+    return {"id": d["id"], "name": d["name"], "age": d["age"], "gender": d["gender"],
+            "country": d["country"], "bio": d["bio"], "photo": d["photo"], "is_demo": True, "verified": True}
+
+
+def _card_from_user(u: dict) -> dict:
+    photos = u.get("photos", []) or []
+    photo = photos[0] if photos else u.get("selfie")
+    return {"id": u["id"], "name": u["name"], "age": u.get("age"), "gender": u.get("gender", "other"),
+            "country": u.get("country", ""), "bio": u.get("bio", ""), "photo": photo,
+            "is_demo": False, "verified": bool(u.get("verified"))}
+
+
+@api_router.patch("/profile", response_model=PublicUser)
+async def update_profile(body: ProfileBody, user: Annotated[dict, Depends(get_current_user)]):
+    updates = {}
+    if body.name is not None and body.name.strip():
+        updates["name"] = body.name.strip()
+    if body.bio is not None:
+        updates["bio"] = body.bio[:300]
+    if body.age is not None:
+        updates["age"] = max(18, min(99, int(body.age)))
+    if body.country is not None:
+        updates["country"] = body.country[:4].upper()
+    if body.photos is not None:
+        updates["photos"] = body.photos[:6]
+    if updates:
+        await db.users.update_one({"id": user["id"]}, {"$set": updates})
+    user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return to_public(user)
+
+
+@api_router.get("/discover")
+async def discover(country: Optional[str] = None, user: Annotated[dict, Depends(get_current_user)] = None):
+    pref = user.get("preference", "everyone")
+    can_filter = TIER_RANK.get(user.get("tier", "free"), 0) >= 2  # gold+
+    country_f = (country or "").upper() if (country and can_filter) else None
+
+    swiped = set()
+    async for s in db.swipes.find({"from": user["id"]}, {"_id": 0, "to": 1}):
+        swiped.add(s["to"])
+    blocked = set(user.get("blocked", []) or [])
+
+    cards = []
+    for d in DEMO_PROFILES:
+        if d["id"] in swiped:
+            continue
+        if pref != "everyone" and d["gender"] != pref:
+            continue
+        if country_f and d["country"] != country_f:
+            continue
+        cards.append(_card_from_demo(d))
+
+    async for u in db.users.find({"id": {"$ne": user["id"]}, "verified": True}, {"_id": 0}):
+        if u["id"] in swiped or u["id"] in blocked:
+            continue
+        if pref != "everyone" and u.get("gender") != pref:
+            continue
+        if country_f and (u.get("country", "").upper() != country_f):
+            continue
+        if not (u.get("photos") or u.get("selfie")):
+            continue
+        cards.append(_card_from_user(u))
+
+    random.shuffle(cards)
+    return {"cards": cards, "can_filter": can_filter}
+
+
+async def _create_match(user: dict, partner_card: dict) -> dict:
+    match_id = str(uuid.uuid4())
+    doc = {
+        "id": match_id,
+        "users": [user["id"], partner_card["id"]],
+        "is_demo": partner_card.get("is_demo", False),
+        "partner_snapshot": {
+            "id": partner_card["id"], "name": partner_card["name"],
+            "photo": partner_card.get("photo"), "gender": partner_card.get("gender", "other"),
+            "verified": partner_card.get("verified", False),
+        },
+        "owner_snapshot": {
+            "id": user["id"], "name": user["name"],
+            "photo": (user.get("photos") or [None])[0] or user.get("selfie"),
+            "gender": user.get("gender", "other"), "verified": bool(user.get("verified")),
+        },
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_text": None,
+        "last_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.matches.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.post("/swipe")
+async def swipe(body: SwipeBody, user: Annotated[dict, Depends(get_current_user)]):
+    if body.action not in ("like", "pass", "heart"):
+        raise HTTPException(status_code=400, detail="Ungültige Aktion")
+    await db.swipes.update_one(
+        {"from": user["id"], "to": body.target_id},
+        {"$set": {"from": user["id"], "to": body.target_id, "action": body.action,
+                  "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    if body.action == "pass":
+        return {"matched": False}
+
+    # existing match?
+    existing = await db.matches.find_one({"users": {"$all": [user["id"], body.target_id]}}, {"_id": 0})
+    if existing:
+        return {"matched": True, "match": _match_view(existing, user["id"])}
+
+    demo = _demo_by_id(body.target_id)
+    if demo:
+        # demo profiles always like back
+        m = await _create_match(user, _card_from_demo(demo))
+        return {"matched": True, "match": _match_view(m, user["id"])}
+
+    # real user: match only if they already liked/hearted us
+    theirs = await db.swipes.find_one({"from": body.target_id, "to": user["id"], "action": {"$in": ["like", "heart"]}})
+    if theirs:
+        other = await db.users.find_one({"id": body.target_id}, {"_id": 0})
+        if other:
+            m = await _create_match(user, _card_from_user(other))
+            return {"matched": True, "match": _match_view(m, user["id"])}
+    return {"matched": False}
+
+
+def _match_view(m: dict, uid: str) -> dict:
+    partner = m["partner_snapshot"] if m["users"][0] == uid else m.get("owner_snapshot", m["partner_snapshot"])
+    if m["users"][0] != uid and m.get("is_demo"):
+        partner = m["partner_snapshot"]
+    return {
+        "id": m["id"],
+        "partner": partner,
+        "is_demo": m.get("is_demo", False),
+        "last_text": m.get("last_text"),
+        "last_at": m.get("last_at"),
+        "created_at": m.get("created_at"),
+    }
+
+
+@api_router.get("/matches")
+async def list_matches(user: Annotated[dict, Depends(get_current_user)]):
+    out = []
+    async for m in db.matches.find({"users": user["id"]}, {"_id": 0}).sort("last_at", -1):
+        out.append(_match_view(m, user["id"]))
+    return {"matches": out}
+
+
+@api_router.get("/matches/{match_id}")
+async def match_detail(match_id: str, user: Annotated[dict, Depends(get_current_user)]):
+    m = await db.matches.find_one({"id": match_id, "users": user["id"]}, {"_id": 0})
+    if not m:
+        raise HTTPException(status_code=404, detail="Match nicht gefunden")
+    msgs = []
+    async for msg in db.messages.find({"match_id": match_id}, {"_id": 0}).sort("created_at", 1):
+        msgs.append(msg)
+    return {"match": _match_view(m, user["id"]), "messages": msgs}
+
+
+@api_router.post("/matches/{match_id}/messages")
+async def send_message(match_id: str, body: MessageBody, user: Annotated[dict, Depends(get_current_user)]):
+    m = await db.matches.find_one({"id": match_id, "users": user["id"]}, {"_id": 0})
+    if not m:
+        raise HTTPException(status_code=404, detail="Match nicht gefunden")
+    text = (body.text or "").strip()[:500]
+    if not text:
+        raise HTTPException(status_code=400, detail="Leere Nachricht")
+    now = datetime.now(timezone.utc).isoformat()
+    msg = {"id": str(uuid.uuid4()), "match_id": match_id, "sender": user["id"], "text": text, "created_at": now}
+    await db.messages.insert_one(msg)
+    await db.matches.update_one({"id": match_id}, {"$set": {"last_text": text, "last_at": now}})
+    reply = None
+    if m.get("is_demo"):
+        rnow = datetime.now(timezone.utc).isoformat()
+        reply = {"id": str(uuid.uuid4()), "match_id": match_id, "sender": m["partner_snapshot"]["id"],
+                 "text": random.choice(BOT_REPLIES), "created_at": rnow}
+        await db.messages.insert_one(reply)
+        await db.matches.update_one({"id": match_id}, {"$set": {"last_text": reply["text"], "last_at": rnow}})
+    msg.pop("_id", None)
+    if reply:
+        reply.pop("_id", None)
+    return {"message": msg, "reply": reply}
+
+
+@api_router.get("/subscription")
+async def get_subscription(user: Annotated[dict, Depends(get_current_user)]):
+    return {"tier": user.get("tier", "free"), "tier_until": user.get("tier_until"), "tiers": TIERS}
+
+
+@api_router.post("/subscription", response_model=PublicUser)
+async def subscribe(body: SubscribeBody, user: Annotated[dict, Depends(get_current_user)]):
+    if body.tier not in TIER_RANK:
+        raise HTTPException(status_code=400, detail="Ungültige Stufe")
+    until = None
+    if body.tier != "free":
+        until = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    await db.users.update_one({"id": user["id"]}, {"$set": {"tier": body.tier, "tier_until": until}})
+    user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return to_public(user)
 
 
 # ----------------------------- Matching (WebSocket) -----------------------------
@@ -370,6 +644,12 @@ class MatchManager:
         if target and not target.startswith("bot-"):
             await db.users.update_one({"id": uid}, {"$addToSet": {"blocked": target}})
 
+    async def signal(self, uid: str, payload):
+        # Relay WebRTC signaling (offer/answer/ICE) to the current real partner.
+        partner = self.pairs.get(uid)
+        if partner:
+            await self.send(partner, {"type": "signal", "data": payload})
+
     async def disconnect(self, uid: str):
         async with self.lock:
             if uid in self.waiting:
@@ -403,16 +683,22 @@ async def websocket_endpoint(ws: WebSocket):
         "blocked": set(user.get("blocked", []) or []),
     }
     await manager.connect(user_id, ws, profile)
+    tier_rank = TIER_RANK.get(user.get("tier", "free"), 0)
     try:
         while True:
             data = await ws.receive_json()
             action = data.get("type")
             if action == "find":
-                await manager.find(user_id)
+                if tier_rank < 1:
+                    await manager.send(user_id, {"type": "paywall"})
+                else:
+                    await manager.find(user_id)
             elif action == "next":
                 await manager.next_partner(user_id)
             elif action == "chat":
                 await manager.chat(user_id, data.get("text", ""))
+            elif action == "signal":
+                await manager.signal(user_id, data.get("data"))
             elif action == "block":
                 await manager.block(user_id, data.get("target"))
             elif action == "stop":

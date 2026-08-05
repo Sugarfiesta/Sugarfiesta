@@ -16,7 +16,7 @@ export default function Index() {
 
   if (!token) return <Redirect href="/login" />;
   if (!user?.verified) return <Redirect href="/verify" />;
-  return <Redirect href="/lobby" />;
+  return <Redirect href="/(tabs)/discover" />;
 }
 
 const styles = StyleSheet.create({
