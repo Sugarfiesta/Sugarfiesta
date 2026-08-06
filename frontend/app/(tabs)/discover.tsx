@@ -10,7 +10,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, fonts, fontScale, gradients } from "@/src/theme";
-import { COUNTRIES, countryLabel } from "@/src/constants";
+import { COUNTRIES, countryLabel, orientationColor, orientationLabel } from "@/src/constants";
 import { api, DiscoverCard } from "@/src/api";
 import { LollipopLoader } from "@/src/components/LollipopLoader";
 import { EmptyState } from "@/src/components/EmptyState";
@@ -165,7 +165,8 @@ export default function DiscoverScreen() {
             .map((card, i) => {
               const isTop = i === 0;
               const inner = (
-                <View style={styles.cardInner} testID={isTop ? "top-card" : undefined}>
+                <LinearGradient colors={gradients.rainbowRing} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cardBorder}>
+                  <View style={styles.cardInner} testID={isTop ? "top-card" : undefined}>
                   {card.photo ? (
                     <Image source={{ uri: card.photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
                   ) : (
@@ -173,7 +174,7 @@ export default function DiscoverScreen() {
                       <Text style={styles.noPhotoText}>{card.name.charAt(0).toUpperCase()}</Text>
                     </View>
                   )}
-                  <LinearGradient colors={["transparent", "rgba(31,10,14,0.85)"]} style={styles.cardScrim} />
+                  <LinearGradient colors={["transparent", "rgba(74,46,59,0.88)"]} style={styles.cardScrim} />
                   {isTop && (
                     <>
                       <Animated.View style={[styles.stamp, styles.likeStamp, likeStyle]}>
@@ -183,7 +184,7 @@ export default function DiscoverScreen() {
                         <Text style={[styles.stampText, { color: colors.error }]}>NÖ</Text>
                       </Animated.View>
                       <Animated.View style={[styles.stamp, styles.heartStamp, heartStyle]}>
-                        <Feather name="heart" size={30} color={colors.brandSecondary} />
+                        <Text style={{ fontSize: 26 }}>🍭</Text>
                         <Text style={[styles.stampText, { color: colors.brandSecondary, fontSize: 20 }]}>SUPER</Text>
                       </Animated.View>
                     </>
@@ -195,10 +196,22 @@ export default function DiscoverScreen() {
                       </Text>
                       {card.verified && <Feather name="check-circle" size={18} color="#7CF0AE" />}
                     </View>
-                    {!!card.country && <Text style={styles.cardCountry}>{countryLabel(card.country)}</Text>}
+                    <View style={styles.chipRow}>
+                      {!!card.country && (
+                        <View style={styles.metaChip}>
+                          <Text style={styles.metaChipText}>{countryLabel(card.country)}</Text>
+                        </View>
+                      )}
+                      {!!card.orientation && (
+                        <View style={[styles.metaChip, { backgroundColor: orientationColor(card.orientation) }]}>
+                          <Text style={[styles.metaChipText, { color: "#FFFFFF" }]}>{orientationLabel(card.orientation)}</Text>
+                        </View>
+                      )}
+                    </View>
                     {!!card.bio && <Text style={styles.cardBio} numberOfLines={2}>{card.bio}</Text>}
                   </View>
-                </View>
+                  </View>
+                </LinearGradient>
               );
 
               const staticStyle = {
@@ -304,16 +317,19 @@ const styles = StyleSheet.create({
   filterBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: colors.surfaceTertiary, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, maxWidth: 140 },
   filterText: { fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: colors.onSurface },
   deck: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
-  card: { position: "absolute", width: "100%", height: "100%", borderRadius: radius.lg },
+  card: { position: "absolute", width: "100%", height: "100%", borderRadius: radius.lg + 4 },
+  cardBorder: { flex: 1, borderRadius: radius.lg + 4, padding: 4 },
   cardInner: { flex: 1, borderRadius: radius.lg, overflow: "hidden", backgroundColor: colors.surfaceTertiary },
   noPhoto: { alignItems: "center", justifyContent: "center", backgroundColor: colors.brandTertiary },
   noPhotoText: { fontFamily: fonts.displayBold, fontSize: 90, color: colors.onBrandTertiary },
   cardScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" },
-  cardInfo: { position: "absolute", left: 0, right: 0, bottom: 0, padding: spacing.xl, gap: 4 },
+  cardInfo: { position: "absolute", left: spacing.md, right: spacing.md, bottom: spacing.md, padding: spacing.lg, gap: spacing.sm, backgroundColor: "rgba(74,46,59,0.35)", borderRadius: radius.md, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   cardNameRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  cardName: { fontFamily: fonts.displayBold, fontSize: fontScale["3xl"], color: colors.onSurfaceInverse },
-  cardCountry: { fontFamily: fonts.textMedium, fontSize: fontScale.base, color: "rgba(255,255,255,0.85)" },
-  cardBio: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: "rgba(255,255,255,0.9)", marginTop: 2 },
+  cardName: { fontFamily: fonts.displayBold, fontSize: fontScale["2xl"], color: colors.onSurfaceInverse },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  metaChip: { backgroundColor: "rgba(255,255,255,0.22)", paddingVertical: 4, paddingHorizontal: spacing.md, borderRadius: radius.pill },
+  metaChipText: { fontFamily: fonts.textBold, fontSize: fontScale.sm, color: "#FFFFFF" },
+  cardBio: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: "rgba(255,255,255,0.92)", marginTop: 2 },
   stamp: { position: "absolute", top: 40, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 3, backgroundColor: "rgba(255,255,255,0.15)" },
   likeStamp: { left: 24, borderColor: colors.success, transform: [{ rotate: "-18deg" }] },
   nopeStamp: { right: 24, borderColor: colors.error, transform: [{ rotate: "18deg" }] },

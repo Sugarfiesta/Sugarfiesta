@@ -6,6 +6,8 @@ export const TOKEN_KEY = "sugar_token";
 export type StoryItem = {
   url: string;
   visibility: "public" | "matches" | "private";
+  caption?: string;
+  text_color?: string;
   at?: string;
 };
 
@@ -28,6 +30,7 @@ export type User = {
   hobby?: string;
   job?: string;
   orientation?: string;
+  orientation_interest?: string[];
   stories?: StoryItem[];
 };
 
@@ -41,6 +44,7 @@ export type DiscoverCard = {
   photo?: string | null;
   is_demo: boolean;
   verified: boolean;
+  orientation?: string;
 };
 
 export type MatchView = {
@@ -104,6 +108,7 @@ export const api = {
     hobby?: string;
     job?: string;
     orientation?: string;
+    orientation_interest?: string[];
   }) => req("/profile", { method: "PATCH", body: JSON.stringify(data) }, true),
   discover: (country?: string) =>
     req(`/discover${country ? `?country=${encodeURIComponent(country)}` : ""}`, { method: "GET" }, true),
@@ -119,10 +124,12 @@ export const api = {
   deleteAccount: () => req("/account", { method: "DELETE" }, true),
   addPhoto: (photo: string) =>
     req("/profile/photo", { method: "POST", body: JSON.stringify({ photo }) }, true),
-  addStory: (photo: string, visibility: string = "public") =>
-    req("/profile/story", { method: "POST", body: JSON.stringify({ photo, visibility }) }, true),
+  addStory: (photo: string, visibility: string = "public", caption?: string, text_color?: string) =>
+    req("/profile/story", { method: "POST", body: JSON.stringify({ photo, visibility, caption, text_color }) }, true),
   setStoryVisibility: (index: number, visibility: string) =>
     req("/profile/story/visibility", { method: "POST", body: JSON.stringify({ index, visibility }) }, true),
+  deleteStory: (index: number) =>
+    req(`/profile/story/${index}`, { method: "DELETE" }, true),
   adminReports: () => req("/admin/reports", { method: "GET" }, true),
   adminResolve: (id: string, action: "dismiss" | "ban") =>
     req(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ action }) }, true),

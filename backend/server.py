@@ -99,6 +99,7 @@ class ProfileBody(BaseModel):
     hobby: Optional[str] = None
     job: Optional[str] = None
     orientation: Optional[str] = None
+    orientation_interest: Optional[List[str]] = None
 
 
 class SwipeBody(BaseModel):
@@ -133,12 +134,15 @@ class PublicUser(BaseModel):
     hobby: str = ""
     job: str = ""
     orientation: str = ""
+    orientation_interest: List[str] = []
     stories: List[dict] = []
 
 
 class PhotoBody(BaseModel):
     photo: str
     visibility: Optional[str] = "public"
+    caption: Optional[str] = None
+    text_color: Optional[str] = None
 
 
 class StoryVisibilityBody(BaseModel):
@@ -172,10 +176,15 @@ def normalize_stories(raw) -> List[dict]:
     out = []
     for s in raw or []:
         if isinstance(s, str):
-            out.append({"url": s, "visibility": "public"})
+            out.append({"url": s, "visibility": "public", "caption": "", "text_color": "#FFFFFF"})
         elif isinstance(s, dict) and s.get("url"):
             vis = s.get("visibility", "public")
-            out.append({"url": s["url"], "visibility": vis if vis in STORY_VISIBILITIES else "public"})
+            out.append({
+                "url": s["url"],
+                "visibility": vis if vis in STORY_VISIBILITIES else "public",
+                "caption": (s.get("caption") or "")[:120],
+                "text_color": s.get("text_color") or "#FFFFFF",
+            })
     return out
 
 
@@ -199,6 +208,7 @@ def to_public(doc: dict) -> PublicUser:
         hobby=doc.get("hobby", "") or "",
         job=doc.get("job", "") or "",
         orientation=doc.get("orientation", "") or "",
+        orientation_interest=doc.get("orientation_interest", []) or [],
         stories=normalize_stories(doc.get("stories", [])),
     )
 
@@ -269,6 +279,7 @@ async def signup(body: SignupBody):
         "hobby": "",
         "job": "",
         "orientation": "",
+        "orientation_interest": [],
         "stories": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -402,14 +413,14 @@ TIERS = [
 TIER_RANK = {"free": 0, "plus": 1, "gold": 2, "vip": 3}
 
 DEMO_PROFILES = [
-    {"id": "demo-1", "name": "Elena", "age": 26, "gender": "female", "country": "DE", "bio": "Kaffee, Kunst & spontane Roadtrips.", "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-2", "name": "Marco", "age": 29, "gender": "male", "country": "IT", "bio": "Koche gerne Pasta. Suche echte Gespräche.", "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-3", "name": "Sofia", "age": 24, "gender": "female", "country": "ES", "bio": "Salsa-Tänzerin & Sonnenuntergangsjägerin.", "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-4", "name": "Luca", "age": 31, "gender": "male", "country": "CH", "bio": "Berge am Wochenende, Jazz am Abend.", "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-5", "name": "Amara", "age": 27, "gender": "female", "country": "FR", "bio": "Fotografin. Zeig mir deine Lieblingsecke.", "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-6", "name": "Noah", "age": 28, "gender": "male", "country": "AT", "bio": "Hunde-Papa & Hobbybäcker 🥐", "photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-7", "name": "Valentina", "age": 25, "gender": "female", "country": "DE", "bio": "Yoga, Bücher & Rotwein.", "photo": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80&auto=format&fit=crop"},
-    {"id": "demo-8", "name": "Leon", "age": 30, "gender": "male", "country": "DE", "bio": "Startup-Gründer. Spontane Reisen? Immer.", "photo": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-1", "name": "Elena", "age": 26, "gender": "female", "country": "DE", "orientation": "hetero", "bio": "Kaffee, Kunst & spontane Roadtrips.", "photo": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-2", "name": "Marco", "age": 29, "gender": "male", "country": "IT", "orientation": "hetero", "bio": "Koche gerne Pasta. Suche echte Gespräche.", "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-3", "name": "Sofia", "age": 24, "gender": "female", "country": "ES", "orientation": "bi", "bio": "Salsa-Tänzerin & Sonnenuntergangsjägerin.", "photo": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-4", "name": "Luca", "age": 31, "gender": "male", "country": "CH", "orientation": "gay", "bio": "Berge am Wochenende, Jazz am Abend.", "photo": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-5", "name": "Amara", "age": 27, "gender": "female", "country": "FR", "orientation": "queer", "bio": "Fotografin. Zeig mir deine Lieblingsecke.", "photo": "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-6", "name": "Noah", "age": 28, "gender": "male", "country": "AT", "orientation": "bi", "bio": "Hunde-Papa & Hobbybäcker 🥐", "photo": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-7", "name": "Valentina", "age": 25, "gender": "female", "country": "DE", "orientation": "pan", "bio": "Yoga, Bücher & Rotwein.", "photo": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&q=80&auto=format&fit=crop"},
+    {"id": "demo-8", "name": "Leon", "age": 30, "gender": "male", "country": "DE", "orientation": "hetero", "bio": "Startup-Gründer. Spontane Reisen? Immer.", "photo": "https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&q=80&auto=format&fit=crop"},
 ]
 
 
@@ -419,7 +430,8 @@ def _demo_by_id(did: str) -> Optional[dict]:
 
 def _card_from_demo(d: dict) -> dict:
     return {"id": d["id"], "name": d["name"], "age": d["age"], "gender": d["gender"],
-            "country": d["country"], "bio": d["bio"], "photo": d["photo"], "is_demo": True, "verified": True}
+            "country": d["country"], "bio": d["bio"], "photo": d["photo"], "is_demo": True,
+            "verified": True, "orientation": d.get("orientation", "")}
 
 
 def _card_from_user(u: dict) -> dict:
@@ -427,7 +439,7 @@ def _card_from_user(u: dict) -> dict:
     photo = photos[0] if photos else u.get("selfie")
     return {"id": u["id"], "name": u["name"], "age": u.get("age"), "gender": u.get("gender", "other"),
             "country": u.get("country", ""), "bio": u.get("bio", ""), "photo": photo,
-            "is_demo": False, "verified": bool(u.get("verified"))}
+            "is_demo": False, "verified": bool(u.get("verified")), "orientation": u.get("orientation", "")}
 
 
 @api_router.patch("/profile", response_model=PublicUser)
@@ -451,6 +463,8 @@ async def update_profile(body: ProfileBody, user: Annotated[dict, Depends(get_cu
         updates["job"] = body.job[:60]
     if body.orientation is not None:
         updates["orientation"] = body.orientation if body.orientation in ALLOWED_ORIENTATIONS else ""
+    if body.orientation_interest is not None:
+        updates["orientation_interest"] = [o for o in body.orientation_interest if o in ALLOWED_ORIENTATIONS][:6]
     if updates:
         await db.users.update_one({"id": user["id"]}, {"$set": updates})
     user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
@@ -464,12 +478,29 @@ async def add_story(body: PhotoBody, user: Annotated[dict, Depends(get_current_u
     if await moderate_image(body.photo):
         return {"ok": False, "explicit": True}
     vis = body.visibility if body.visibility in STORY_VISIBILITIES else "public"
-    item = {"url": body.photo, "visibility": vis, "at": datetime.now(timezone.utc).isoformat()}
+    item = {
+        "url": body.photo,
+        "visibility": vis,
+        "caption": (body.caption or "")[:120],
+        "text_color": body.text_color or "#FFFFFF",
+        "at": datetime.now(timezone.utc).isoformat(),
+    }
     stories = normalize_stories(user.get("stories", []))
     stories = ([item] + stories)[:10]
     await db.users.update_one({"id": user["id"]}, {"$set": {"stories": stories}})
     u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return {"ok": True, "explicit": False, "user": to_public(u).model_dump()}
+
+
+@api_router.delete("/profile/story/{index}", response_model=PublicUser)
+async def delete_story(index: int, user: Annotated[dict, Depends(get_current_user)]):
+    stories = normalize_stories(user.get("stories", []))
+    if index < 0 or index >= len(stories):
+        raise HTTPException(status_code=404, detail="Story nicht gefunden")
+    stories.pop(index)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"stories": stories}})
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return to_public(u)
 
 
 @api_router.post("/profile/story/visibility", response_model=PublicUser)
@@ -495,6 +526,10 @@ async def discover(country: Optional[str] = None, user: Annotated[dict, Depends(
     async for s in db.swipes.find({"from": user["id"]}, {"_id": 0, "to": 1}):
         swiped.add(s["to"])
     blocked = set(user.get("blocked", []) or [])
+    interest = set(user.get("orientation_interest", []) or [])
+
+    def orientation_ok(o: str) -> bool:
+        return (not interest) or (not o) or (o in interest)
 
     cards = []
     for d in DEMO_PROFILES:
@@ -504,6 +539,8 @@ async def discover(country: Optional[str] = None, user: Annotated[dict, Depends(
             continue
         if country_f and d["country"] != country_f:
             continue
+        if not orientation_ok(d.get("orientation", "")):
+            continue
         cards.append(_card_from_demo(d))
 
     async for u in db.users.find({"id": {"$ne": user["id"]}, "verified": True}, {"_id": 0}):
@@ -512,6 +549,8 @@ async def discover(country: Optional[str] = None, user: Annotated[dict, Depends(
         if pref != "everyone" and u.get("gender") != pref:
             continue
         if country_f and (u.get("country", "").upper() != country_f):
+            continue
+        if not orientation_ok(u.get("orientation", "")):
             continue
         if not (u.get("photos") or u.get("selfie")):
             continue

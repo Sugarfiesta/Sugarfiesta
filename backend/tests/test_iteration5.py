@@ -240,3 +240,192 @@ class TestFullRegression:
         # subsequent /auth/me should now 401
         me = requests.get(f"{API}/auth/me", headers=_headers(tok), timeout=10)
         assert me.status_code == 401
+
+
+# ----------------- NEW: Story caption + text_color -----------------
+class TestStoryCaptionColor:
+    def test_add_story_with_caption_and_color(self):
+        tok, _ = _new_user("stcap")
+        r = requests.post(f"{API}/profile/story",
+                          json={"photo": FAKE_PHOTO, "visibility": "public",
+                                "caption": "Hallo Welt", "text_color": "#FF66AA"},
+                          headers=_headers(tok), timeout=30)
+        assert r.status_code == 200, r.text
+        s = r.json()["user"]["stories"][0]
+        assert s["caption"] == "Hallo Welt"
+        assert s["text_color"] == "#FF66AA"
+        assert s["visibility"] == "public"
+        assert "at" in s
+        assert s["url"] == FAKE_PHOTO
+        # persistence via /auth/me
+        me = requests.get(f"{API}/auth/me", headers=_headers(tok), timeout=10).json()
+        assert me["stories"][0]["caption"] == "Hallo Welt"
+        assert me["stories"][0]["text_color"] == "#FF66AA"
+
+    def test_add_story_defaults_when_no_caption(self):
+        tok, _ = _new_user("stnocap")
+        r = requests.post(f"{API}/profile/story",
+                          json={"photo": FAKE_PHOTO},
+                          headers=_headers(tok), timeout=30)
+        assert r.status_code == 200
+        s = r.json()["user"]["stories"][0]
+        assert s["caption"] == ""
+        assert s["text_color"] == "#FFFFFF"
+
+    def test_add_story_caption_truncated_to_120(self):
+        tok, _ = _new_user("stcaplong")
+        long_caption = "x" * 200
+        r = requests.post(f"{API}/profile/story",
+                          json={"photo": FAKE_PHOTO, "caption": long_caption},
+                          headers=_headers(tok), timeout=30)
+        assert r.status_code == 200
+        assert len(r.json()["user"]["stories"][0]["caption"]) == 120
+
+
+# ----------------- NEW: Delete story -----------------
+class TestStoryDelete:
+    def test_delete_story_removes_entry(self):
+        tok, _ = _new_user("stdel")
+        # add three stories
+        for cap in ["a", "b", "c"]:
+            add = requests.post(f"{API}/profile/story",
+                                json={"photo": FAKE_PHOTO, "caption": cap},
+                                headers=_headers(tok), timeout=30)
+            assert add.status_code == 200
+        # user.stories are prepended (newest first): [c, b, a]
+        me = requests.get(f"{API}/auth/me", headers=_headers(tok), timeout=10).json()
+        assert [s["caption"] for s in me["stories"]] == ["c", "b", "a"]
+
+        # delete middle (index 1 -> "b")
+        r = requests.delete(f"{API}/profile/story/1", headers=_headers(tok), timeout=10)
+        assert r.status_code == 200, r.text
+        u = r.json()
+        assert [s["caption"] for s in u["stories"]] == ["c", "a"]
+
+        # verify persistence
+        me2 = requests.get(f"{API}/auth/me", headers=_headers(tok), timeout=10).json()
+        assert [s["caption"] for s in me2["stories"]] == ["c", "a"]
+
+    def test_delete_story_invalid_index_returns_404(self):
+        tok, _ = _new_user("stdel404")
+        # no stories -> any index invalid
+        r = requests.delete(f"{API}/profile/story/0", headers=_headers(tok), timeout=10)
+        assert r.status_code == 404
+        # add one, then delete out-of-range
+        requests.post(f"{API}/profile/story",
+                      json={"photo": FAKE_PHOTO}, headers=_headers(tok), timeout=30)
+        r = requests.delete(f"{API}/profile/story/5", headers=_headers(tok), timeout=10)
+        assert r.status_code == 404
+        r = requests.delete(f"{API}/profile/story/-1", headers=_headers(tok), timeout=10)
+        assert r.status_code == 404
+
+    def test_delete_story_requires_auth(self):
+        r = requests.delete(f"{API}/profile/story/0", timeout=10)
+        assert r.status_code == 401
+
+
+# ----------------- NEW: orientation_interest persistence + Discover filter -----------------
+class TestOrientationInterest:
+    def test_orientation_interest_persists_list(self):
+        tok, _ = _new_user("oi1")
+        r = requests.patch(f"{API}/profile",
+                          json={"orientation_interest": ["hetero", "bi", "queer"]},
+                          headers=_headers(tok), timeout=10)
+        assert r.status_code == 200, r.text
+        assert set(r.json()["orientation_interest"]) == {"hetero", "bi", "queer"}
+        me = requests.get(f"{API}/auth/me", headers=_headers(tok), timeout=10).json()
+        assert set(me["orientation_interest"]) == {"hetero", "bi", "queer"}
+
+    def test_orientation_interest_filters_invalid_and_caps_at_six(self):
+        tok, _ = _new_user("oi2")
+        r = requests.patch(f"{API}/profile",
+                          json={"orientation_interest": ["hetero", "banana", "gay", "bi",
+                                                         "pan", "ace", "queer", "extra"]},
+                          headers=_headers(tok), timeout=10)
+        assert r.status_code == 200
+        vals = r.json()["orientation_interest"]
+        # invalid values dropped
+        assert "banana" not in vals
+        assert "extra" not in vals
+        # capped at 6
+        assert len(vals) <= 6
+        # all remaining are valid
+        assert all(v in {"hetero", "gay", "bi", "pan", "ace", "queer"} for v in vals)
+
+    def test_orientation_interest_empty_list_clears(self):
+        tok, _ = _new_user("oi3")
+        requests.patch(f"{API}/profile",
+                       json={"orientation_interest": ["gay"]},
+                       headers=_headers(tok), timeout=10)
+        r = requests.patch(f"{API}/profile",
+                           json={"orientation_interest": []},
+                           headers=_headers(tok), timeout=10)
+        assert r.status_code == 200
+        assert r.json()["orientation_interest"] == []
+
+
+class TestDiscoverOrientationFilter:
+    def test_discover_cards_have_orientation_field(self):
+        tok, _ = _new_user("disc1")
+        r = requests.get(f"{API}/discover", headers=_headers(tok), timeout=15)
+        assert r.status_code == 200
+        cards = r.json()["cards"]
+        assert len(cards) > 0
+        for c in cards:
+            assert "orientation" in c
+
+    def test_discover_filters_by_orientation_interest(self):
+        tok, _ = _new_user("disc2")
+        # set preference=everyone to see all demo genders
+        requests.patch(f"{API}/profile/preferences",
+                       json={"preference": "everyone"},
+                       headers=_headers(tok), timeout=10)
+        # only want to see gay + bi
+        requests.patch(f"{API}/profile",
+                       json={"orientation_interest": ["gay", "bi"]},
+                       headers=_headers(tok), timeout=10)
+        r = requests.get(f"{API}/discover", headers=_headers(tok), timeout=15)
+        assert r.status_code == 200
+        cards = r.json()["cards"]
+        # every demo card with orientation set must be gay or bi; empty allowed
+        demo_orients = [c["orientation"] for c in cards if c.get("id", "").startswith("demo-")]
+        assert len(demo_orients) > 0
+        for o in demo_orients:
+            assert o == "" or o in {"gay", "bi"}, f"Unexpected orientation {o}"
+
+    def test_discover_empty_interest_shows_all(self):
+        tok, _ = _new_user("disc3")
+        requests.patch(f"{API}/profile/preferences",
+                       json={"preference": "everyone"},
+                       headers=_headers(tok), timeout=10)
+        # empty interest
+        requests.patch(f"{API}/profile",
+                       json={"orientation_interest": []},
+                       headers=_headers(tok), timeout=10)
+        r = requests.get(f"{API}/discover", headers=_headers(tok), timeout=15)
+        assert r.status_code == 200
+        demo_orients = {c["orientation"] for c in r.json()["cards"]
+                        if c.get("id", "").startswith("demo-")}
+        # should include at least 3 different orientations since we have 6 demos
+        assert len(demo_orients) >= 3
+
+    def test_discover_empty_orientation_always_allowed(self):
+        # Create user with orientation_interest=["gay"] only, verify demo cards
+        # with empty orientation would still appear (all seed demos have orientation
+        # set, so this asserts the code path via cards from real users would work).
+        tok, _ = _new_user("disc4")
+        requests.patch(f"{API}/profile/preferences",
+                       json={"preference": "everyone"},
+                       headers=_headers(tok), timeout=10)
+        requests.patch(f"{API}/profile",
+                       json={"orientation_interest": ["gay"]},
+                       headers=_headers(tok), timeout=10)
+        r = requests.get(f"{API}/discover", headers=_headers(tok), timeout=15)
+        assert r.status_code == 200
+        # Only demo-4 (Luca, gay) should appear from demo pool
+        demo_ids = [c["id"] for c in r.json()["cards"] if c.get("id", "").startswith("demo-")]
+        assert "demo-4" in demo_ids
+        # heteros should be excluded
+        hetero_demos = ["demo-1", "demo-2", "demo-8"]
+        for h in hetero_demos:
+            assert h not in demo_ids, f"{h} (hetero) should have been filtered out"

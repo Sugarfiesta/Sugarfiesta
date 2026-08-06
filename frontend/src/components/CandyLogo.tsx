@@ -45,8 +45,8 @@ export function CandyLogo({ size = 96, showWordmark = true }: { size?: number; s
   return (
     <View style={styles.wrap} testID="app-logo">
       <Svg width={w} height={h} viewBox="0 0 148 100">
-        <Bear transform="translate(4,14)" color="#EF3E52" light="#FF9AA8" />
-        <Bear transform="translate(78,8)" color="#8A5A34" light="#C79A6E" />
+        <Bear transform="translate(6,12)" color="#EF3E52" light="#FF9AA8" />
+        <Bear transform="translate(78,12)" color="#8A5A34" light="#C79A6E" />
       </Svg>
       {showWordmark && <Text style={styles.wordmark}>Sugar</Text>}
     </View>
