@@ -29,3 +29,36 @@ export function tierName(t?: string) {
 export function tierRank(t?: string) {
   return ({ free: 0, plus: 1, gold: 2, vip: 3 } as Record<string, number>)[t || "free"] ?? 0;
 }
+
+// Sexual orientations, each with its own candy accent color.
+export const ORIENTATIONS = [
+  { key: "hetero", label: "Hetero", color: "#FF528A" },
+  { key: "gay", label: "Schwul / Lesbisch", color: "#22D3EE" },
+  { key: "bi", label: "Bisexuell", color: "#C084FC" },
+  { key: "pan", label: "Pansexuell", color: "#FBBF24" },
+  { key: "ace", label: "Asexuell", color: "#4ADE80" },
+  { key: "queer", label: "Queer", color: "#F472B6" },
+] as const;
+
+export function orientationLabel(key?: string) {
+  return ORIENTATIONS.find((o) => o.key === key)?.label || "";
+}
+
+export function orientationColor(key?: string) {
+  return ORIENTATIONS.find((o) => o.key === key)?.color || "#FF528A";
+}
+
+// Story visibility levels.
+export const STORY_VIS = [
+  { key: "public", label: "Öffentlich", icon: "globe" },
+  { key: "matches", label: "Nur Matches", icon: "users" },
+  { key: "private", label: "Privat", icon: "lock" },
+] as const;
+
+export function storyVisLabel(key?: string) {
+  return STORY_VIS.find((v) => v.key === key)?.label || "Öffentlich";
+}
+
+export function storyVisIcon(key?: string): "globe" | "users" | "lock" {
+  return (STORY_VIS.find((v) => v.key === key)?.icon || "globe") as "globe" | "users" | "lock";
+}

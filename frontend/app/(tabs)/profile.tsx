@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 
 import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
-import { COUNTRIES, countryLabel, tierName, TIER_COLORS } from "@/src/constants";
+import { COUNTRIES, countryLabel, tierName, TIER_COLORS, ORIENTATIONS, orientationColor, STORY_VIS, storyVisIcon, storyVisLabel } from "@/src/constants";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api";
 import { RainbowAvatar } from "@/src/components/RainbowAvatar";
@@ -44,11 +44,14 @@ export default function ProfileScreen() {
   const [religion, setReligion] = useState(user?.religion || "");
   const [hobby, setHobby] = useState(user?.hobby || "");
   const [job, setJob] = useState(user?.job || "");
+  const [orientation, setOrientation] = useState(user?.orientation || "");
   const [storyBusy, setStoryBusy] = useState(false);
-  const [viewer, setViewer] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; index: number; visibility: string } | null>(null);
+  const [showVisPicker, setShowVisPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCountry, setShowCountry] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const stories = user?.stories || [];
   const tierColor = TIER_COLORS[user?.tier || "free"];
 
   const flash = (t: string) => {
@@ -56,7 +59,8 @@ export default function ProfileScreen() {
     setTimeout(() => setToast(null), 1800);
   };
 
-  const postStory = async () => {
+  const postStory = async (visibility: string) => {
+    setShowVisPicker(false);
     if (storyBusy) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -69,7 +73,7 @@ export default function ProfileScreen() {
     const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
     setStoryBusy(true);
     try {
-      const result = await api.addStory(uri);
+      const result = await api.addStory(uri, visibility);
       if (!result.ok) {
         flash(result.explicit ? "Story abgelehnt: unangemessener Inhalt" : "Story abgelehnt");
         return;
@@ -81,6 +85,18 @@ export default function ProfileScreen() {
       flash("Upload fehlgeschlagen");
     } finally {
       setStoryBusy(false);
+    }
+  };
+
+  const changeStoryVisibility = async (index: number, visibility: string) => {
+    try {
+      const updated = await api.setStoryVisibility(index, visibility);
+      setUser(updated);
+      setViewer((v) => (v ? { ...v, visibility } : v));
+      Haptics.selectionAsync();
+      flash(`Sichtbarkeit: ${storyVisLabel(visibility)}`);
+    } catch {
+      flash("Aktualisierung fehlgeschlagen");
     }
   };
 
@@ -145,6 +161,7 @@ export default function ProfileScreen() {
         religion,
         hobby,
         job,
+        orientation,
       });
       setUser(updated);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -202,20 +219,23 @@ export default function ProfileScreen() {
         {/* Storys */}
         <Text style={styles.sectionLabel}>Deine Storys</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyRow}>
-          <Pressable testID="post-story" onPress={postStory} style={styles.addStory}>
+          <Pressable testID="post-story" onPress={() => setShowVisPicker(true)} style={styles.addStory}>
             {storyBusy ? (
               <ActivityIndicator color={colors.onBrandPrimary} />
             ) : (
               <Feather name="plus" size={26} color={colors.onBrandPrimary} />
             )}
           </Pressable>
-          {(user?.stories || []).map((s, i) => (
-            <Pressable key={`${i}`} testID={`story-${i}`} onPress={() => setViewer(s)} style={styles.storyCircle}>
-              <Image source={{ uri: s }} style={styles.storyImg} contentFit="cover" />
+          {stories.map((s, i) => (
+            <Pressable key={`${i}`} testID={`story-${i}`} onPress={() => setViewer({ url: s.url, index: i, visibility: s.visibility })} style={styles.storyCircle}>
+              <Image source={{ uri: s.url }} style={styles.storyImg} contentFit="cover" />
+              <View style={styles.storyVisBadge}>
+                <Feather name={storyVisIcon(s.visibility)} size={11} color={colors.onBrandPrimary} />
+              </View>
             </Pressable>
           ))}
         </ScrollView>
-        <Text style={styles.hint}>Tippe auf „+", um eine Story zu posten. Storys werden automatisch geprüft.</Text>
+        <Text style={styles.hint}>Tippe auf „+", um eine Story zu posten. Wähle die Sichtbarkeit; alle Storys werden automatisch geprüft.</Text>
 
         {/* Photos */}
         <Text style={styles.sectionLabel}>Meine Fotos</Text>
@@ -296,6 +316,25 @@ export default function ProfileScreen() {
           <TextInput testID="profile-job" style={styles.input} placeholder="Job" placeholderTextColor={colors.onSurfaceTertiary} value={job} onChangeText={setJob} returnKeyType="done" onSubmitEditing={() => Keyboard.dismiss()} />
         </View>
 
+        {/* Orientation */}
+        <Text style={styles.sectionLabel}>Orientierung</Text>
+        <View style={styles.orientRow}>
+          {ORIENTATIONS.map((o) => {
+            const active = orientation === o.key;
+            return (
+              <Pressable
+                key={o.key}
+                testID={`orientation-${o.key}`}
+                onPress={() => { setOrientation(active ? "" : o.key); Haptics.selectionAsync(); }}
+                style={[styles.orientChip, { borderColor: o.color }, active && { backgroundColor: o.color }]}
+              >
+                <View style={[styles.orientDot, { backgroundColor: active ? colors.onBrandPrimary : o.color }]} />
+                <Text style={[styles.orientText, active && { color: colors.onBrandPrimary }]}>{o.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {/* Preference */}
         <Text style={styles.sectionLabel}>Wen möchtest du treffen?</Text>
         <View style={styles.prefRow}>
@@ -368,12 +407,56 @@ export default function ProfileScreen() {
       )}
 
       {viewer && (
-        <View style={StyleSheet.absoluteFill} testID="story-viewer">
-          <Image source={{ uri: viewer }} style={StyleSheet.absoluteFill} contentFit="contain" />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: "#1A0E14" }]} testID="story-viewer">
+          <Image source={{ uri: viewer.url }} style={StyleSheet.absoluteFill} contentFit="contain" />
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <Pressable testID="story-viewer-close" onPress={() => setViewer(null)} style={[styles.storyClose, { top: insets.top + spacing.md }]} hitSlop={12}>
               <Feather name="x" size={26} color="#FFFFFF" />
             </Pressable>
+            <View style={[styles.storyVisBar, { bottom: insets.bottom + spacing.xl }]}>
+              <Text style={styles.storyVisTitle}>Sichtbarkeit</Text>
+              <View style={styles.storyVisOptions}>
+                {STORY_VIS.map((v) => {
+                  const active = viewer.visibility === v.key;
+                  return (
+                    <Pressable
+                      key={v.key}
+                      testID={`story-vis-${v.key}`}
+                      onPress={() => changeStoryVisibility(viewer.index, v.key)}
+                      style={[styles.storyVisOpt, active && styles.storyVisOptActive]}
+                    >
+                      <Feather name={storyVisIcon(v.key)} size={16} color={active ? colors.onBrandPrimary : "#FFFFFF"} />
+                      <Text style={[styles.storyVisOptText, active && { color: colors.onBrandPrimary }]}>{v.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {showVisPicker && (
+        <View style={StyleSheet.absoluteFill} testID="story-vis-picker">
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowVisPicker(false)} />
+          <View style={[styles.modalCard, { paddingBottom: insets.bottom + spacing.md }]}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Wer darf deine Story sehen?</Text>
+            {STORY_VIS.map((v) => (
+              <Pressable
+                key={v.key}
+                testID={`post-vis-${v.key}`}
+                onPress={() => postStory(v.key)}
+                style={styles.visRow}
+              >
+                <View style={styles.visIconWrap}>
+                  <Feather name={storyVisIcon(v.key)} size={18} color={colors.brandPrimary} />
+                </View>
+                <Text style={styles.visRowText}>{v.label}</Text>
+                <View style={{ flex: 1 }} />
+                <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+              </Pressable>
+            ))}
           </View>
         </View>
       )}
@@ -427,6 +510,20 @@ const styles = StyleSheet.create({
   detailsHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   skipText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.brandPrimary },
   storyClose: { position: "absolute", right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  storyVisBadge: { position: "absolute", bottom: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.brandPrimary, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "#FFFFFF" },
+  storyVisBar: { position: "absolute", left: spacing.lg, right: spacing.lg, gap: spacing.sm },
+  storyVisTitle: { fontFamily: fonts.textBold, fontSize: fontScale.sm, color: "rgba(255,255,255,0.85)", textAlign: "center" },
+  storyVisOptions: { flexDirection: "row", gap: spacing.sm },
+  storyVisOpt: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 46, borderRadius: radius.pill, backgroundColor: "rgba(255,255,255,0.14)", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+  storyVisOptActive: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },
+  storyVisOptText: { fontFamily: fonts.textMedium, fontSize: fontScale.sm, color: "#FFFFFF" },
+  orientRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  orientChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1.5, backgroundColor: colors.surfaceSecondary },
+  orientDot: { width: 10, height: 10, borderRadius: 5 },
+  orientText: { fontFamily: fonts.textMedium, fontSize: fontScale.base, color: colors.onSurface },
+  visRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  visIconWrap: { width: 40, height: 40, borderRadius: radius.pill, backgroundColor: colors.surfaceTertiary, alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: "#FFFFFF" },
+  visRowText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurface },
   photoRow: { gap: spacing.sm, paddingVertical: spacing.xs },
   photoWrap: { width: 96, height: 128, borderRadius: radius.md, overflow: "hidden" },
   photo: { width: "100%", height: "100%", backgroundColor: colors.surfaceTertiary },

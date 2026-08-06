@@ -8,7 +8,6 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +17,7 @@ import { Feather } from "@expo/vector-icons";
 import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
 import { api } from "@/src/api";
 import { useAuth } from "@/src/context/AuthContext";
+import { LollipopLoader } from "@/src/components/LollipopLoader";
 
 type Msg = { id: string; sender: string; text: string; created_at: string };
 
@@ -102,7 +102,7 @@ export default function ChatScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.brandPrimary} />
+          <LollipopLoader size={56} />
         </View>
       ) : (
         <KeyboardAvoidingView

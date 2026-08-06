@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
@@ -9,9 +9,14 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
+import { colors, spacing, radius, fonts, fontScale, gradients } from "@/src/theme";
 import { COUNTRIES, countryLabel } from "@/src/constants";
 import { api, DiscoverCard } from "@/src/api";
+import { LollipopLoader } from "@/src/components/LollipopLoader";
+import { EmptyState } from "@/src/components/EmptyState";
+import { RainbowAvatar } from "@/src/components/RainbowAvatar";
+import { CandyConfetti } from "@/src/components/CandyConfetti";
+import { GummyButton } from "@/src/components/GummyButton";
 
 export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
@@ -146,17 +151,15 @@ export default function DiscoverScreen() {
 
       <View style={styles.deck}>
         {loading ? (
-          <ActivityIndicator size="large" color={colors.brandPrimary} />
+          <LollipopLoader size={64} />
         ) : done ? (
-          <View style={styles.empty} testID="discover-empty">
-            <Feather name="compass" size={44} color={colors.brandTertiary} />
-            <Text style={styles.emptyTitle}>{"Das war's fürs Erste"}</Text>
-            <Text style={styles.emptyText}>Schau später wieder vorbei – oder ändere deinen Filter.</Text>
-            <Pressable testID="reload-discover" onPress={() => load(filter)} style={styles.reloadBtn}>
-              <Feather name="refresh-cw" size={16} color={colors.onBrandPrimary} />
-              <Text style={styles.reloadText}>Neu laden</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            testID="discover-empty"
+            title="Das war's fürs Erste 🍬"
+            text="Schau später wieder vorbei – oder ändere deinen Filter."
+            ctaLabel="Neu laden"
+            onCta={() => load(filter)}
+          />
         ) : (
           visible
             .map((card, i) => {
@@ -237,25 +240,25 @@ export default function DiscoverScreen() {
       {/* Match overlay */}
       {match && (
         <View style={StyleSheet.absoluteFill} testID="match-overlay">
-          <LinearGradient colors={["rgba(31,10,14,0.95)", "rgba(138,15,44,0.95)"]} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={gradients.cottonCandy} style={StyleSheet.absoluteFill} />
+          <CandyConfetti count={18} />
           <View style={styles.matchContent}>
-            <Text style={styles.matchTitle}>Es ist ein Match!</Text>
-            {match.partner?.photo && (
-              <Image source={{ uri: match.partner.photo }} style={styles.matchPhoto} contentFit="cover" />
-            )}
+            <Text style={styles.matchTitle}>Es ist ein Match! 🐻🍬</Text>
+            <RainbowAvatar uri={match.partner?.photo} size={180} fallback={match.partner?.name || "S"} square ring={5} />
             <Text style={styles.matchName}>Du und {match.partner?.name} mögt euch 💘</Text>
-            <Pressable
+            <GummyButton
               testID="match-message"
+              label="Nachricht senden"
+              color={colors.surfaceSecondary}
+              textColor={colors.brandPrimary}
               onPress={() => {
                 const id = match.id;
                 setMatch(null);
                 router.push(`/chat/${id}`);
               }}
-              style={styles.matchBtn}
-            >
-              <Feather name="message-circle" size={18} color={colors.brandPrimary} />
-              <Text style={styles.matchBtnText}>Nachricht senden</Text>
-            </Pressable>
+              style={{ paddingHorizontal: spacing["2xl"] }}
+              height={54}
+            />
             <Pressable testID="match-continue" onPress={() => setMatch(null)} style={styles.matchGhost}>
               <Text style={styles.matchGhostText}>Weiter entdecken</Text>
             </Pressable>
@@ -327,13 +330,10 @@ const styles = StyleSheet.create({
   reloadBtn: { flexDirection: "row", alignItems: "center", gap: spacing.xs, marginTop: spacing.md, backgroundColor: colors.brandPrimary, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.pill },
   reloadText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.onBrandPrimary },
   matchContent: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.xl, gap: spacing.lg },
-  matchTitle: { fontFamily: fonts.displayBold, fontSize: 44, color: colors.onSurfaceInverse, textAlign: "center" },
-  matchPhoto: { width: 160, height: 200, borderRadius: radius.lg, borderWidth: 3, borderColor: colors.onSurfaceInverse },
-  matchName: { fontFamily: fonts.textMedium, fontSize: fontScale.lg, color: "rgba(255,255,255,0.9)", textAlign: "center" },
-  matchBtn: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.onSurfaceInverse, paddingVertical: spacing.md, paddingHorizontal: spacing["2xl"], borderRadius: radius.pill },
-  matchBtnText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.brandPrimary },
+  matchTitle: { fontFamily: fonts.displayBold, fontSize: 40, color: colors.onSurface, textAlign: "center" },
+  matchName: { fontFamily: fonts.textMedium, fontSize: fontScale.lg, color: colors.onSurfaceSecondary, textAlign: "center" },
   matchGhost: { paddingVertical: spacing.sm },
-  matchGhostText: { fontFamily: fonts.textMedium, fontSize: fontScale.base, color: "rgba(255,255,255,0.85)" },
+  matchGhostText: { fontFamily: fonts.textBold, fontSize: fontScale.base, color: colors.onSurface },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   modalCard: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   modalHandle: { width: 44, height: 5, borderRadius: radius.pill, backgroundColor: colors.borderStrong, alignSelf: "center", marginBottom: spacing.md },

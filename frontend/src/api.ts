@@ -3,6 +3,12 @@ import { storage } from "@/src/utils/storage";
 const BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`;
 export const TOKEN_KEY = "sugar_token";
 
+export type StoryItem = {
+  url: string;
+  visibility: "public" | "matches" | "private";
+  at?: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -21,7 +27,8 @@ export type User = {
   religion?: string;
   hobby?: string;
   job?: string;
-  stories?: string[];
+  orientation?: string;
+  stories?: StoryItem[];
 };
 
 export type DiscoverCard = {
@@ -96,6 +103,7 @@ export const api = {
     religion?: string;
     hobby?: string;
     job?: string;
+    orientation?: string;
   }) => req("/profile", { method: "PATCH", body: JSON.stringify(data) }, true),
   discover: (country?: string) =>
     req(`/discover${country ? `?country=${encodeURIComponent(country)}` : ""}`, { method: "GET" }, true),
@@ -111,8 +119,10 @@ export const api = {
   deleteAccount: () => req("/account", { method: "DELETE" }, true),
   addPhoto: (photo: string) =>
     req("/profile/photo", { method: "POST", body: JSON.stringify({ photo }) }, true),
-  addStory: (photo: string) =>
-    req("/profile/story", { method: "POST", body: JSON.stringify({ photo }) }, true),
+  addStory: (photo: string, visibility: string = "public") =>
+    req("/profile/story", { method: "POST", body: JSON.stringify({ photo, visibility }) }, true),
+  setStoryVisibility: (index: number, visibility: string) =>
+    req("/profile/story/visibility", { method: "POST", body: JSON.stringify({ index, visibility }) }, true),
   adminReports: () => req("/admin/reports", { method: "GET" }, true),
   adminResolve: (id: string, action: "dismiss" | "ban") =>
     req(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ action }) }, true),

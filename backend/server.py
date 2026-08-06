@@ -98,6 +98,7 @@ class ProfileBody(BaseModel):
     religion: Optional[str] = None
     hobby: Optional[str] = None
     job: Optional[str] = None
+    orientation: Optional[str] = None
 
 
 class SwipeBody(BaseModel):
@@ -131,11 +132,18 @@ class PublicUser(BaseModel):
     religion: str = ""
     hobby: str = ""
     job: str = ""
-    stories: List[str] = []
+    orientation: str = ""
+    stories: List[dict] = []
 
 
 class PhotoBody(BaseModel):
     photo: str
+    visibility: Optional[str] = "public"
+
+
+class StoryVisibilityBody(BaseModel):
+    index: int
+    visibility: str
 
 
 class AdminResolveBody(BaseModel):
@@ -154,6 +162,21 @@ class ReportBody(BaseModel):
 class AuthResponse(BaseModel):
     token: str
     user: PublicUser
+
+
+ALLOWED_ORIENTATIONS = {"hetero", "gay", "bi", "pan", "ace", "queer"}
+STORY_VISIBILITIES = {"public", "matches", "private"}
+
+
+def normalize_stories(raw) -> List[dict]:
+    out = []
+    for s in raw or []:
+        if isinstance(s, str):
+            out.append({"url": s, "visibility": "public"})
+        elif isinstance(s, dict) and s.get("url"):
+            vis = s.get("visibility", "public")
+            out.append({"url": s["url"], "visibility": vis if vis in STORY_VISIBILITIES else "public"})
+    return out
 
 
 def to_public(doc: dict) -> PublicUser:
@@ -175,7 +198,8 @@ def to_public(doc: dict) -> PublicUser:
         religion=doc.get("religion", "") or "",
         hobby=doc.get("hobby", "") or "",
         job=doc.get("job", "") or "",
-        stories=doc.get("stories", []) or [],
+        orientation=doc.get("orientation", "") or "",
+        stories=normalize_stories(doc.get("stories", [])),
     )
 
 
@@ -244,6 +268,7 @@ async def signup(body: SignupBody):
         "religion": "",
         "hobby": "",
         "job": "",
+        "orientation": "",
         "stories": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -424,6 +449,8 @@ async def update_profile(body: ProfileBody, user: Annotated[dict, Depends(get_cu
         updates["hobby"] = body.hobby[:60]
     if body.job is not None:
         updates["job"] = body.job[:60]
+    if body.orientation is not None:
+        updates["orientation"] = body.orientation if body.orientation in ALLOWED_ORIENTATIONS else ""
     if updates:
         await db.users.update_one({"id": user["id"]}, {"$set": updates})
     user = await db.users.find_one({"id": user["id"]}, {"_id": 0})
@@ -436,11 +463,26 @@ async def add_story(body: PhotoBody, user: Annotated[dict, Depends(get_current_u
         raise HTTPException(status_code=400, detail="Ungültiges Bild")
     if await moderate_image(body.photo):
         return {"ok": False, "explicit": True}
-    stories = (user.get("stories", []) or [])
-    stories = ([body.photo] + stories)[:10]
+    vis = body.visibility if body.visibility in STORY_VISIBILITIES else "public"
+    item = {"url": body.photo, "visibility": vis, "at": datetime.now(timezone.utc).isoformat()}
+    stories = normalize_stories(user.get("stories", []))
+    stories = ([item] + stories)[:10]
     await db.users.update_one({"id": user["id"]}, {"$set": {"stories": stories}})
     u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
     return {"ok": True, "explicit": False, "user": to_public(u).model_dump()}
+
+
+@api_router.post("/profile/story/visibility", response_model=PublicUser)
+async def set_story_visibility(body: StoryVisibilityBody, user: Annotated[dict, Depends(get_current_user)]):
+    if body.visibility not in STORY_VISIBILITIES:
+        raise HTTPException(status_code=400, detail="Ungültige Sichtbarkeit")
+    stories = normalize_stories(user.get("stories", []))
+    if body.index < 0 or body.index >= len(stories):
+        raise HTTPException(status_code=404, detail="Story nicht gefunden")
+    stories[body.index]["visibility"] = body.visibility
+    await db.users.update_one({"id": user["id"]}, {"$set": {"stories": stories}})
+    u = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return to_public(u)
 
 
 @api_router.get("/discover")

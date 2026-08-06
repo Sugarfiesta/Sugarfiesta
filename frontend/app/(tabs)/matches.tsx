@@ -1,12 +1,13 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Pressable, FlatList, RefreshControl } from "react-native";
-import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
 import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
 import { api, MatchView } from "@/src/api";
+import { EmptyState } from "@/src/components/EmptyState";
+import { RainbowAvatar } from "@/src/components/RainbowAvatar";
 
 function timeLabel(iso?: string | null) {
   if (!iso) return "";
@@ -61,14 +62,13 @@ export default function MatchesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brandPrimary} />}
         ListEmptyComponent={
           loaded ? (
-            <View style={styles.empty} testID="matches-empty">
-              <Feather name="heart" size={40} color={colors.brandTertiary} />
-              <Text style={styles.emptyTitle}>Noch keine Matches</Text>
-              <Text style={styles.emptyText}>{"Wische im Tab „Entdecken\", um jemanden kennenzulernen."}</Text>
-              <Pressable testID="go-discover" onPress={() => router.push("/(tabs)/discover")} style={styles.emptyBtn}>
-                <Text style={styles.emptyBtnText}>Jetzt entdecken</Text>
-              </Pressable>
-            </View>
+            <EmptyState
+              testID="matches-empty"
+              title="Noch keine Matches"
+              text={'Wische im Tab „Entdecken\u201C, um jemanden Süßes kennenzulernen.'}
+              ctaLabel="Jetzt entdecken"
+              onCta={() => router.push("/(tabs)/discover")}
+            />
           ) : null
         }
         renderItem={({ item }) => (
@@ -78,11 +78,9 @@ export default function MatchesScreen() {
             style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceTertiary }]}
           >
             {item.partner.photo ? (
-              <Image source={{ uri: item.partner.photo }} style={styles.avatar} contentFit="cover" />
+              <RainbowAvatar uri={item.partner.photo} size={62} fallback={item.partner.name} ring={2.5} />
             ) : (
-              <View style={[styles.avatar, styles.avatarFallback]}>
-                <Text style={styles.avatarText}>{item.partner.name.charAt(0).toUpperCase()}</Text>
-              </View>
+              <RainbowAvatar size={62} fallback={item.partner.name} ring={2.5} />
             )}
             <View style={styles.rowBody}>
               <View style={styles.rowTop}>

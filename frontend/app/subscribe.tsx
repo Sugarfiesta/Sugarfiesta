@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { colors, spacing, radius, fonts, fontScale } from "@/src/theme";
+import { colors, spacing, radius, fonts, fontScale, gradients } from "@/src/theme";
 import { TIER_COLORS } from "@/src/constants";
 import { api } from "@/src/api";
 import { useAuth } from "@/src/context/AuthContext";
+import { LollipopLoader } from "@/src/components/LollipopLoader";
+import { GummyButton } from "@/src/components/GummyButton";
 
 type Tier = { id: string; name: string; price: number; tagline: string; features: string[] };
 
@@ -58,9 +60,9 @@ export default function SubscribeScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={[colors.surfaceInverse, "#3A121C"]} style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+      <LinearGradient colors={gradients.cottonCandy} style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Pressable testID="subscribe-close" onPress={() => router.back()} hitSlop={12} style={styles.closeBtn}>
-          <Feather name="x" size={22} color={colors.onSurfaceInverse} />
+          <Feather name="x" size={22} color={colors.onSurface} />
         </Pressable>
         <Text style={styles.title}>Sugar Abos</Text>
         <Text style={styles.subtitle}>Live-Video-Dating ist ab Sugar Plus dabei 🎥</Text>
@@ -68,7 +70,7 @@ export default function SubscribeScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator size="large" color={colors.brandPrimary} />
+          <LollipopLoader size={64} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing.xl }]} showsVerticalScrollIndicator={false}>
@@ -98,24 +100,16 @@ export default function SubscribeScreen() {
                     </View>
                   ))}
                 </View>
-                <Pressable
+                <GummyButton
                   testID={`tier-select-${t.id}`}
+                  label={active ? "Aktueller Plan" : t.price === 0 ? "Wechseln zu Free" : "Auswählen"}
                   onPress={() => choose(t)}
                   disabled={active || busy !== null}
-                  style={({ pressed }) => [
-                    styles.selectBtn,
-                    { backgroundColor: active ? colors.surfaceTertiary : accent },
-                    pressed && { transform: [{ scale: 0.98 }] },
-                  ]}
-                >
-                  {busy === t.id ? (
-                    <ActivityIndicator color={colors.onBrandPrimary} />
-                  ) : (
-                    <Text style={[styles.selectText, active && { color: colors.onSurfaceTertiary }]}>
-                      {active ? "Aktueller Plan" : t.price === 0 ? "Wechseln zu Free" : "Auswählen"}
-                    </Text>
-                  )}
-                </Pressable>
+                  loading={busy === t.id}
+                  color={active ? colors.surfaceTertiary : accent}
+                  textColor={active ? colors.onSurfaceTertiary : colors.onBrandPrimary}
+                  height={50}
+                />
               </View>
             );
           })}
@@ -132,8 +126,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   header: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
   closeBtn: { alignSelf: "flex-end" },
-  title: { fontFamily: fonts.displayBold, fontSize: fontScale["3xl"], color: colors.onSurfaceInverse, marginTop: spacing.sm },
-  subtitle: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: "rgba(255,255,255,0.85)", marginTop: spacing.xs },
+  title: { fontFamily: fonts.displayBold, fontSize: fontScale["3xl"], color: colors.onSurface, marginTop: spacing.sm },
+  subtitle: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: colors.onSurfaceSecondary, marginTop: spacing.xs },
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { padding: spacing.lg, gap: spacing.lg },
   card: {
