@@ -69,12 +69,13 @@ export default function DiscoverScreen() {
     }
   }, []);
 
+  // Up = like (record), Down = pass (skip). Advances the deck.
   const finish = useCallback(
-    (action: "like" | "pass" | "heart") => {
+    (action: "like" | "pass") => {
       const card = cardsRef.current[indexRef.current];
       tx.value = 0;
       ty.value = 0;
-      if (card && action !== "pass") doSwipe(card, action);
+      if (card && action === "like") doSwipe(card, "like");
       const ni = indexRef.current + 1;
       indexRef.current = ni;
       setIndex(ni);
@@ -82,20 +83,32 @@ export default function DiscoverScreen() {
     [doSwipe, tx, ty]
   );
 
-  const trigger = useCallback(
-    (action: "like" | "pass" | "heart") => {
-      Haptics.impactAsync(action === "heart" ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
-      if (action === "heart") {
-        ty.value = withTiming(-700, { duration: 240 }, (f) => {
-          if (f) runOnJS(finish)("heart");
-        });
-      } else {
-        tx.value = withTiming(action === "like" ? 520 : -520, { duration: 240 }, (f) => {
-          if (f) runOnJS(finish)(action);
-        });
+  // Horizontal browse through the deck (carousel) without deciding.
+  const browse = useCallback(
+    (dir: 1 | -1) => {
+      const ni = indexRef.current + dir;
+      if (ni < 0 || ni >= cardsRef.current.length) {
+        tx.value = withSpring(0);
+        ty.value = withSpring(0);
+        return;
       }
+      tx.value = 0;
+      ty.value = 0;
+      indexRef.current = ni;
+      setIndex(ni);
+      Haptics.selectionAsync();
     },
-    [finish, tx, ty]
+    [tx, ty]
+  );
+
+  const trigger = useCallback(
+    (action: "like" | "pass") => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      ty.value = withTiming(action === "like" ? -720 : 720, { duration: 240 }, (f) => {
+        if (f) runOnJS(finish)(action);
+      });
+    },
+    [finish, ty]
   );
 
   const pan = Gesture.Pan()
@@ -104,24 +117,36 @@ export default function DiscoverScreen() {
       ty.value = e.translationY;
     })
     .onEnd((e) => {
-      if (e.translationX > 110) {
-        tx.value = withTiming(520, { duration: 200 }, (f) => f && runOnJS(finish)("like"));
-      } else if (e.translationX < -110) {
-        tx.value = withTiming(-520, { duration: 200 }, (f) => f && runOnJS(finish)("pass"));
-      } else if (e.translationY < -120) {
-        ty.value = withTiming(-700, { duration: 220 }, (f) => f && runOnJS(finish)("heart"));
+      const ax = Math.abs(e.translationX);
+      const ay = Math.abs(e.translationY);
+      if (ay >= ax) {
+        if (e.translationY < -110) {
+          ty.value = withTiming(-720, { duration: 220 }, (f) => f && runOnJS(finish)("like"));
+        } else if (e.translationY > 110) {
+          ty.value = withTiming(720, { duration: 220 }, (f) => f && runOnJS(finish)("pass"));
+        } else {
+          tx.value = withSpring(0);
+          ty.value = withSpring(0);
+        }
       } else {
-        tx.value = withSpring(0);
-        ty.value = withSpring(0);
+        if (e.translationX > 90) {
+          tx.value = withTiming(360, { duration: 180 }, (f) => f && runOnJS(browse)(-1));
+        } else if (e.translationX < -90) {
+          tx.value = withTiming(-360, { duration: 180 }, (f) => f && runOnJS(browse)(1));
+        } else {
+          tx.value = withSpring(0);
+          ty.value = withSpring(0);
+        }
       }
     });
 
   const topStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: `${tx.value / 22}deg` }],
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: `${tx.value / 26}deg` }],
   }));
-  const likeStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, tx.value / 110)) }));
-  const nopeStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, -tx.value / 110)) }));
-  const heartStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, -ty.value / 120)) }));
+  const upStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, -ty.value / 110)) }));
+  const downStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, ty.value / 110)) }));
+  const browsePrevStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, tx.value / 90)) }));
+  const browseNextStyle = useAnimatedStyle(() => ({ opacity: Math.max(0, Math.min(1, -tx.value / 90)) }));
 
   const openFilter = () => {
     if (!canFilter) {
@@ -139,7 +164,7 @@ export default function DiscoverScreen() {
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View>
           <Text style={styles.title}>Entdecken</Text>
-          <Text style={styles.subtitle}>Wische, um Menschen zu treffen</Text>
+          <Text style={styles.subtitle}>Hoch = Like · Runter = Nö · Seitwärts blättern</Text>
         </View>
         <Pressable testID="country-filter" onPress={openFilter} style={styles.filterBtn}>
           <Feather name={canFilter ? "sliders" : "lock"} size={16} color={colors.onSurface} />
@@ -177,15 +202,18 @@ export default function DiscoverScreen() {
                   <LinearGradient colors={["transparent", "rgba(74,46,59,0.88)"]} style={styles.cardScrim} />
                   {isTop && (
                     <>
-                      <Animated.View style={[styles.stamp, styles.likeStamp, likeStyle]}>
+                      <Animated.View style={[styles.stamp, styles.likeStamp, upStyle]}>
+                        <Text style={{ fontSize: 24 }}>🍬</Text>
                         <Text style={[styles.stampText, { color: colors.success }]}>LIKE</Text>
                       </Animated.View>
-                      <Animated.View style={[styles.stamp, styles.nopeStamp, nopeStyle]}>
+                      <Animated.View style={[styles.stamp, styles.nopeStamp, downStyle]}>
                         <Text style={[styles.stampText, { color: colors.error }]}>NÖ</Text>
                       </Animated.View>
-                      <Animated.View style={[styles.stamp, styles.heartStamp, heartStyle]}>
-                        <Text style={{ fontSize: 26 }}>🍭</Text>
-                        <Text style={[styles.stampText, { color: colors.brandSecondary, fontSize: 20 }]}>SUPER</Text>
+                      <Animated.View style={[styles.browseHint, styles.browseLeft, browsePrevStyle]}>
+                        <Feather name="chevron-left" size={30} color="#FFFFFF" />
+                      </Animated.View>
+                      <Animated.View style={[styles.browseHint, styles.browseRight, browseNextStyle]}>
+                        <Feather name="chevron-right" size={30} color="#FFFFFF" />
                       </Animated.View>
                     </>
                   )}
@@ -239,13 +267,13 @@ export default function DiscoverScreen() {
       {!loading && !done && (
         <View style={[styles.actions, { paddingBottom: insets.bottom + spacing.md }]}>
           <Pressable testID="pass-button" onPress={() => trigger("pass")} style={[styles.actionBtn, styles.passBtn]}>
-            <Feather name="x" size={28} color={colors.error} />
+            <Feather name="chevron-down" size={28} color={colors.error} />
           </Pressable>
-          <Pressable testID="heart-button" onPress={() => trigger("heart")} style={[styles.actionBtn, styles.heartBtn]}>
-            <Feather name="heart" size={26} color={colors.onBrandPrimary} />
+          <Pressable testID="detail-button" onPress={() => { const c = cardsRef.current[indexRef.current]; if (c) router.push(`/user/${c.id}`); }} style={[styles.actionBtn, styles.heartBtn]}>
+            <Feather name="maximize-2" size={24} color={colors.onBrandPrimary} />
           </Pressable>
           <Pressable testID="like-button" onPress={() => trigger("like")} style={[styles.actionBtn, styles.likeBtn]}>
-            <Feather name="check" size={28} color={colors.success} />
+            <Feather name="chevron-up" size={28} color={colors.success} />
           </Pressable>
         </View>
       )}
@@ -330,10 +358,12 @@ const styles = StyleSheet.create({
   metaChip: { backgroundColor: "rgba(255,255,255,0.22)", paddingVertical: 4, paddingHorizontal: spacing.md, borderRadius: radius.pill },
   metaChipText: { fontFamily: fonts.textBold, fontSize: fontScale.sm, color: "#FFFFFF" },
   cardBio: { fontFamily: fonts.textRegular, fontSize: fontScale.base, color: "rgba(255,255,255,0.92)", marginTop: 2 },
-  stamp: { position: "absolute", top: 40, paddingVertical: spacing.sm, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 3, backgroundColor: "rgba(255,255,255,0.15)" },
-  likeStamp: { left: 24, borderColor: colors.success, transform: [{ rotate: "-18deg" }] },
-  nopeStamp: { right: 24, borderColor: colors.error, transform: [{ rotate: "18deg" }] },
-  heartStamp: { alignSelf: "center", top: 120, borderColor: colors.brandSecondary, alignItems: "center", flexDirection: "row", gap: spacing.xs },
+  stamp: { position: "absolute", paddingVertical: spacing.sm, paddingHorizontal: spacing.xl, borderRadius: radius.md, borderWidth: 3, backgroundColor: "rgba(255,255,255,0.2)", flexDirection: "row", alignItems: "center", gap: spacing.xs },
+  likeStamp: { top: 40, alignSelf: "center", borderColor: colors.success, transform: [{ rotate: "-8deg" }] },
+  nopeStamp: { bottom: 120, alignSelf: "center", borderColor: colors.error, transform: [{ rotate: "8deg" }] },
+  browseHint: { position: "absolute", top: "46%", width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(74,46,59,0.5)", alignItems: "center", justifyContent: "center" },
+  browseLeft: { left: 16 },
+  browseRight: { right: 16 },
   stampText: { fontFamily: fonts.textBold, fontSize: 26, letterSpacing: 2 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.xl, paddingTop: spacing.sm },
   actionBtn: { alignItems: "center", justifyContent: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },

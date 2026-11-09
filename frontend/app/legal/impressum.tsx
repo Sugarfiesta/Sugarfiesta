@@ -6,11 +6,10 @@ import { Feather } from "@expo/vector-icons";
 import { colors, spacing, fonts, fontScale } from "@/src/theme";
 
 const SECTIONS: { h: string; b: string }[] = [
-  { h: "Angaben gemäß § 5 TMG", b: "Sugar\nMuster­straße 1\n10115 Berlin\nDeutschland" },
-  { h: "Vertreten durch", b: "Geschäftsführung: Sugar Team" },
-  { h: "Kontakt", b: "E-Mail: support@sugar.app\nTelefon: +49 30 000000" },
-  { h: "Umsatzsteuer-ID", b: "USt-IdNr. gemäß § 27 a UStG: DE000000000" },
-  { h: "Verantwortlich für den Inhalt (§ 18 Abs. 2 MStV)", b: "Sugar Team, Musterstraße 1, 10115 Berlin" },
+  { h: "Angaben gemäß § 5 TMG", b: "Sugar\nCastroper Straße 82\n44357 Dortmund\nDeutschland" },
+  { h: "Vertreten durch", b: "Yunus Emre Kara" },
+  { h: "Kontakt", b: "E-Mail: support@sugar.app" },
+  { h: "Verantwortlich für den Inhalt (§ 18 Abs. 2 MStV)", b: "Yunus Emre Kara, Castroper Straße 82, 44357 Dortmund" },
   { h: "Streitschlichtung", b: "Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: https://ec.europa.eu/consumers/odr. Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen." },
 ];
 

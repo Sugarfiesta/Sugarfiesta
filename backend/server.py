@@ -503,6 +503,31 @@ async def delete_story(index: int, user: Annotated[dict, Depends(get_current_use
     return to_public(u)
 
 
+@api_router.get("/users/{uid}/profile")
+async def get_user_profile(uid: str, user: Annotated[dict, Depends(get_current_user)]):
+    if uid.startswith("demo-"):
+        d = _demo_by_id(uid)
+        if not d:
+            raise HTTPException(status_code=404, detail="Profil nicht gefunden")
+        return {
+            "id": d["id"], "name": d["name"], "age": d["age"], "gender": d["gender"],
+            "country": d.get("country", ""), "bio": d.get("bio", ""), "photos": [d["photo"]],
+            "orientation": d.get("orientation", ""), "religion": "", "hobby": "", "job": "",
+            "verified": True, "stories": [], "is_demo": True,
+        }
+    u = await db.users.find_one({"id": uid}, {"_id": 0})
+    if not u:
+        raise HTTPException(status_code=404, detail="Profil nicht gefunden")
+    data = to_public(u).model_dump()
+    # matched users may see "matches"-level stories, everyone sees public
+    is_match = await db.matches.find_one({"users": {"$all": [user["id"], uid]}})
+    allowed = {"public", "matches"} if is_match else {"public"}
+    data["stories"] = [s for s in normalize_stories(u.get("stories", [])) if s["visibility"] in allowed]
+    data["is_demo"] = False
+    return data
+
+
+
 @api_router.post("/profile/story/visibility", response_model=PublicUser)
 async def set_story_visibility(body: StoryVisibilityBody, user: Annotated[dict, Depends(get_current_user)]):
     if body.visibility not in STORY_VISIBILITIES:

@@ -130,6 +130,7 @@ export const api = {
     req("/profile/story/visibility", { method: "POST", body: JSON.stringify({ index, visibility }) }, true),
   deleteStory: (index: number) =>
     req(`/profile/story/${index}`, { method: "DELETE" }, true),
+  getUserProfile: (id: string) => req(`/users/${id}/profile`, {}, true),
   adminReports: () => req("/admin/reports", { method: "GET" }, true),
   adminResolve: (id: string, action: "dismiss" | "ban") =>
     req(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ action }) }, true),

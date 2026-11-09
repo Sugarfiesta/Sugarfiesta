@@ -98,3 +98,47 @@ Full visual restyle to a glossy pastel "candy" aesthetic (logic unchanged).
 - Also completed earlier update-5 request: profile Religion/Hobby/Job fields + Skip, story viewer modal, Impressum screen + Settings link, age keyboard-dismiss.
 - Verified: lint clean; screenshots of EULA gate, login, discover, profile all render the candy theme correctly.
 
+
+## Update 7 — Full list of user requests (keep everything, nothing dropped)
+Status legend: [done+tested] · [built, not yet tested] · [open]
+
+### Visual / Candy look
+- Bring every screen into the candy look: Video, Matches, Chat, subscription page with gummy buttons + cute icons. Matches/Chat/Abo [built, not yet tested]; Video [open – only partly restyled]
+- Every tab icon inside a small candy frame [built, not yet tested]
+- Candy confetti animation on a new match [built, not yet tested]
+- Marshmallow illustrations for empty lists ("noch keine Matches") [built, not yet tested]
+- Logo: heart fully replaced by two Kawaii gummy bears (one red, one cola-brown, cute faces), "Sugar" wordmark below [built, not yet tested]
+- Both bears at exactly the same height [built, not yet tested]
+- Pastel pink, mint, lavender, lemon + magenta/cyan accents, melted-ice-cream/marshmallow gradients, glossy gummy buttons, rainbow candy photo frames, lollipop loader, Kawaii vibe (Update 6) [done]
+- More creative profile menu [built, not yet tested]
+- Swipe-card design: more inventive, different from other apps, still elegant [built, not yet tested]
+
+### Orientation
+- Orientation identity: Hetero, Schwul/Lesbisch, Bisexuell, Pansexuell, Asexuell, Queer, each with its own color/design for men, women and diverse people [built, not yet tested]
+- "Interested in" filter: pick which orientations you want to see; only those profiles appear [backend checked, UI not yet tested]
+- Everything can be changed later [built, not yet tested]
+
+### Profile
+- Religion / Hobby / Job as ready-made picks already during profile creation, plus Skip [built, not yet tested]
+- Delete photos [open – needs checking/building]
+- Edit the profile from Settings ("Profil bearbeiten" link) [built, not yet tested]
+- Tapping a person opens their full profile (/user/[id]): vertical scroll, all photos, answers such as hobbies, candy design [screen + backend built; tap from Discover not confirmed]
+
+### Discover gestures (carousel)
+- Swipe up = like/keep, swipe down = never show this profile again, left/right = fast browsing like a rotating carousel [built, not yet tested]
+
+### Stories
+- Visibility: Öffentlich · Nur Matches · Privat [built, not yet tested]
+- Visibility chosen with one tap at the top right while creating a story; changeable later in Settings/Profile [built, not yet tested]
+- Delete stories [backend checked, UI not yet tested]
+- Instagram-style captions and designs on stories [backend checked, UI not yet tested]
+- Fullscreen story viewer when tapping a story [done]
+
+### Legal
+- Full, detailed AGB/Nutzungsbedingungen like other dating platforms (many pages) [built, not yet tested; not legally reviewed]
+- Impressum: Sugar, Castroper Straße 82, 44357 Dortmund; name Yunus Emre Kara only if legally required, otherwise just "Sugar" [built, not yet tested; not legally reviewed]
+
+### Earlier decisions
+- VIP portal button: user said NO
+- Age gate: keyboard closes for the birth date [done]
+- Real WebRTC video only after deploy + native build [open]

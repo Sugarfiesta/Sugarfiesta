@@ -43,6 +43,19 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + spacing["2xl"] }]} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mein Profil</Text>
+          <Pressable testID="edit-profile" onPress={() => router.push("/(tabs)/profile")} style={styles.linkRow}>
+            <Feather name="edit-3" size={18} color={colors.onSurface} />
+            <Text style={styles.linkText}>Profil & Storys bearbeiten</Text>
+            <View style={{ flex: 1 }} />
+            <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
+          </Pressable>
+          <Text style={styles.body}>
+            {"Ändere hier jederzeit deine Fotos, Storys, Interessen und die Sichtbarkeit deiner Storys (Öffentlich · Nur Matches · Privat)."}
+          </Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Community-Regeln</Text>
           <Text style={styles.body}>
             Sugar hat eine Null-Toleranz-Politik gegenüber anstößigen Inhalten und missbräuchlichem Verhalten.

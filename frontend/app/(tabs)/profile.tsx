@@ -59,7 +59,6 @@ export default function ProfileScreen() {
   const [storyBusy, setStoryBusy] = useState(false);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
-  const [showVisPicker, setShowVisPicker] = useState(false);
   const [picker, setPicker] = useState<Picker | null>(null);
   const [customText, setCustomText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -74,9 +73,8 @@ export default function ProfileScreen() {
     setTimeout(() => setToast(null), 1800);
   };
 
-  // ---- Story creation: choose visibility -> pick image -> edit (caption/color) -> share
-  const beginStory = async (visibility: string) => {
-    setShowVisPicker(false);
+  // ---- Story creation: pick image -> edit (caption/color/visibility) -> share
+  const beginStory = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       flash("Fotozugriff benötigt");
@@ -86,7 +84,17 @@ export default function ProfileScreen() {
     if (res.canceled) return;
     const asset = res.assets[0];
     const uri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-    setEditor({ uri, visibility, caption: "", textColor: "#FFFFFF" });
+    setEditor({ uri, visibility: "public", caption: "", textColor: "#FFFFFF" });
+  };
+
+  const cycleEditorVisibility = () => {
+    setEditor((e) => {
+      if (!e) return e;
+      const order = STORY_VIS.map((v) => v.key);
+      const next = order[(order.indexOf(e.visibility) + 1) % order.length];
+      Haptics.selectionAsync();
+      return { ...e, visibility: next };
+    });
   };
 
   const shareStory = async () => {
@@ -292,7 +300,7 @@ export default function ProfileScreen() {
         {/* Storys */}
         <Text style={styles.sectionLabel}>Deine Storys</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storyRow}>
-          <Pressable testID="post-story" onPress={() => setShowVisPicker(true)} style={styles.addStory}>
+          <Pressable testID="post-story" onPress={beginStory} style={styles.addStory}>
             {storyBusy && !editor ? <ActivityIndicator color={colors.onBrandPrimary} /> : <Feather name="plus" size={26} color={colors.onBrandPrimary} />}
           </Pressable>
           {stories.map((s, i) => (
@@ -465,25 +473,6 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* Story visibility picker (before creating) */}
-      {showVisPicker && (
-        <View style={StyleSheet.absoluteFill} testID="story-vis-picker">
-          <Pressable style={styles.modalBackdrop} onPress={() => setShowVisPicker(false)} />
-          <View style={[styles.modalCard, { paddingBottom: insets.bottom + spacing.md }]}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Wer darf deine Story sehen?</Text>
-            {STORY_VIS.map((v) => (
-              <Pressable key={v.key} testID={`post-vis-${v.key}`} onPress={() => beginStory(v.key)} style={styles.optionRow}>
-                <View style={styles.visIconWrap}><Feather name={storyVisIcon(v.key)} size={18} color={colors.brandPrimary} /></View>
-                <Text style={styles.visRowText}>{v.label}</Text>
-                <View style={{ flex: 1 }} />
-                <Feather name="chevron-right" size={18} color={colors.onSurfaceTertiary} />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
-
       {/* Story editor (Instagram-style caption + color) */}
       {editor && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: "#140A0F" }]} testID="story-editor">
@@ -491,6 +480,10 @@ export default function ProfileScreen() {
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <Pressable testID="story-editor-close" onPress={() => setEditor(null)} style={[styles.storyClose, { top: insets.top + spacing.md }]} hitSlop={12}>
               <Feather name="x" size={26} color="#FFFFFF" />
+            </Pressable>
+            <Pressable testID="story-vis-toggle" onPress={cycleEditorVisibility} style={[styles.visToggle, { top: insets.top + spacing.md }]} hitSlop={8}>
+              <Feather name={storyVisIcon(editor.visibility)} size={15} color="#FFFFFF" />
+              <Text style={styles.visToggleText}>{storyVisLabel(editor.visibility)}</Text>
             </Pressable>
             <View style={[styles.editorCenter]} pointerEvents="box-none">
               <TextInput
@@ -619,6 +612,8 @@ const styles = StyleSheet.create({
   visRowText: { fontFamily: fonts.textBold, fontSize: fontScale.lg, color: colors.onSurface },
   storyClose: { position: "absolute", right: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
   storyDelete: { position: "absolute", left: spacing.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center" },
+  visToggle: { position: "absolute", right: spacing.lg + 52, height: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: spacing.md, borderRadius: 22, backgroundColor: "rgba(0,0,0,0.5)" },
+  visToggleText: { fontFamily: fonts.textBold, fontSize: fontScale.sm, color: "#FFFFFF" },
   editorCenter: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: spacing.xl },
   captionInput: { fontFamily: fonts.displayBold, fontSize: 30, textAlign: "center", minWidth: 200, textShadowColor: "rgba(0,0,0,0.5)", textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
   editorBar: { position: "absolute", left: spacing.lg, right: spacing.lg, gap: spacing.md },
